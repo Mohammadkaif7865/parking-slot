@@ -4,10 +4,11 @@ const { Server } = require("socket.io");
 const { setIO } = require("./lib/realtime.cjs");
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = process.env.HOST || "127.0.0.1";
+const hostname = process.env.HOST || (dev ? "127.0.0.1" : "0.0.0.0");
 const port = Number(process.env.PORT || 3000);
+const internalHost = hostname === "0.0.0.0" ? "127.0.0.1" : hostname;
 
-const app = next({ dev, hostname, port });
+const app = next({ dev, hostname: internalHost, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
