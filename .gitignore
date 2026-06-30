@@ -1,0 +1,16 @@
+node_modules/
+.next/
+.env
+.env.local
+*.log
+dist/
+build/
+.DS_Store
+Thumbs.db
+*.dwg
+*.pdf
+!public/maps/tisha-plaza/map-1.pdf
+!public/maps/tisha-plaza/map-2.pdf
+!public/maps/tisha-plaza/map-3.pdf
+!public/maps/tisha-plaza/map-4.pdf
+!public/maps/tisha-plaza/map-5.pdf

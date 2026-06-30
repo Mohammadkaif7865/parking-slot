@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  city      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  maps      Map[]
+}
+
+model Map {
+  id         String        @id @default(cuid())
+  locationId String
+  name       String
+  filePath   String
+  sourceType String        @default("pdf")
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  location   Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  slots      ParkingSlot[]
+}
+
+model ParkingSlot {
+  id        String    @id @default(cuid())
+  mapId     String
+  slotNo    String
+  zone      String?
+  type      String    @default("Regular")
+  x         Float
+  y         Float
+  width     Float
+  height    Float
+  status    String    @default("available")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  map       Map       @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+
+  @@unique([mapId, slotNo])
+}
+
+model Booking {
+  id        String      @id @default(cuid())
+  slotId    String
+  allottee  String
+  mobile    String?
+  level     String?
+  status    String      @default("active")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  slot      ParkingSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+}
