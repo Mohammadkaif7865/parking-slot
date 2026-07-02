@@ -16,6 +16,8 @@ const emptySlot = {
   h: 6
 };
 
+const draftSlotId = "draft-slot";
+
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false);
   const [locations, setLocations] = useState([]);
@@ -90,6 +92,8 @@ export default function AdminPage() {
   const activeLocation = locations.find((location) => location.id === locationId);
   const activeMap = activeLocation?.maps.find((map) => map.id === mapId) || activeLocation?.maps[0];
   const selectedSlot = activeMap?.slots.find((slot) => slot.id === selectedSlotId);
+  const isDraftSlot = selectedSlotId === draftSlotId && !form.id && Boolean(form.slotNo);
+  const canEditPosition = Boolean(form.id || isDraftSlot);
 
   const stats = useMemo(() => {
     const slots = activeMap?.slots || [];
@@ -118,6 +122,27 @@ export default function AdminPage() {
     setSelectedSlotId(slot.id);
     setForm(slotToForm(slot));
     setMessage(`${slot.slotNo} selected for editing.`);
+  }
+
+  function addNewSlot() {
+    if (!activeMap) {
+      setMessage("Select a map first.");
+      showToast("error", "Select a map first.");
+      return;
+    }
+
+    const nextSlot = {
+      ...emptySlot,
+      slotNo: getNextSlotNumber(activeMap),
+      zone: activeMap.name || "",
+      x: 12,
+      y: 12
+    };
+
+    setSelectedSlotId(draftSlotId);
+    setForm(nextSlot);
+    setMessage(`${nextSlot.slotNo} draft added. Move it on the map, then save.`);
+    showToast("success", `${nextSlot.slotNo} draft added.`);
   }
 
   function updateForm(field, value) {
@@ -180,6 +205,13 @@ export default function AdminPage() {
 
   async function deleteSlot() {
     if (!selectedSlot) {
+      if (isDraftSlot) {
+        setSelectedSlotId("");
+        setForm(emptySlot);
+        setMessage("Draft slot removed.");
+        showToast("success", "Draft slot removed.");
+        return;
+      }
       setMessage("Select a slot first.");
       showToast("error", "Select a slot first.");
       return;
@@ -354,21 +386,21 @@ export default function AdminPage() {
               <div className="position-panel">
                 <div>
                   <p className="section-label">Position</p>
-                  <strong>{form.id ? form.slotNo || "Selected Slot" : "Select a slot"}</strong>
+                  <strong>{form.id || isDraftSlot ? form.slotNo || "Selected Slot" : "Select a slot"}</strong>
                 </div>
 
                 <div className="position-grid">
-                  <label>X %<input type="number" value={form.x} disabled={!form.id} onChange={(event) => updateForm("x", event.target.value)} /></label>
-                  <label>Y %<input type="number" value={form.y} disabled={!form.id} onChange={(event) => updateForm("y", event.target.value)} /></label>
-                  <label>W %<input type="number" value={form.w} disabled={!form.id} onChange={(event) => updateForm("w", event.target.value)} /></label>
-                  <label>H %<input type="number" value={form.h} disabled={!form.id} onChange={(event) => updateForm("h", event.target.value)} /></label>
+                  <label>X %<input type="number" value={form.x} disabled={!canEditPosition} onChange={(event) => updateForm("x", event.target.value)} /></label>
+                  <label>Y %<input type="number" value={form.y} disabled={!canEditPosition} onChange={(event) => updateForm("y", event.target.value)} /></label>
+                  <label>W %<input type="number" value={form.w} disabled={!canEditPosition} onChange={(event) => updateForm("w", event.target.value)} /></label>
+                  <label>H %<input type="number" value={form.h} disabled={!canEditPosition} onChange={(event) => updateForm("h", event.target.value)} /></label>
                 </div>
 
                 <div className="nudge-pad">
-                  <button className="ghost" type="button" disabled={!form.id} onClick={() => nudge(0, -1)}>Up</button>
-                  <button className="ghost" type="button" disabled={!form.id} onClick={() => nudge(-1, 0)}>Left</button>
-                  <button className="ghost" type="button" disabled={!form.id} onClick={() => nudge(1, 0)}>Right</button>
-                  <button className="ghost" type="button" disabled={!form.id} onClick={() => nudge(0, 1)}>Down</button>
+                  <button className="ghost" type="button" disabled={!canEditPosition} onClick={() => nudge(0, -1)}>Up</button>
+                  <button className="ghost" type="button" disabled={!canEditPosition} onClick={() => nudge(-1, 0)}>Left</button>
+                  <button className="ghost" type="button" disabled={!canEditPosition} onClick={() => nudge(1, 0)}>Right</button>
+                  <button className="ghost" type="button" disabled={!canEditPosition} onClick={() => nudge(0, 1)}>Down</button>
                 </div>
               </div>
               <div className="map-stage">
@@ -396,6 +428,19 @@ export default function AdminPage() {
                         </button>
                       );
                     })}
+                    {isDraftSlot && (
+                      <button
+                        className="slot available is-selected is-draft"
+                        style={{ left: `${form.x}%`, top: `${form.y}%`, width: `${form.w}%`, height: `${form.h}%` }}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedSlotId(draftSlotId);
+                        }}
+                        type="button"
+                      >
+                        {form.slotNo}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -407,7 +452,7 @@ export default function AdminPage() {
 
         <aside className="booking-panel">
           <p className="section-label">Slot Editor</p>
-          <h2>{form.id ? `Editing ${form.slotNo}` : "New Slot"}</h2>
+          <h2>{form.id ? `Editing ${form.slotNo}` : isDraftSlot ? `New ${form.slotNo}` : "New Slot"}</h2>
 
           <label>Slot Number<input value={form.slotNo} onChange={(event) => updateForm("slotNo", event.target.value)} placeholder="A-101" /></label>
           <label>Zone<input value={form.zone} onChange={(event) => updateForm("zone", event.target.value)} placeholder="Wing A" /></label>
@@ -425,7 +470,7 @@ export default function AdminPage() {
           <button className="primary" onClick={saveSlot} disabled={Boolean(pendingAction)}>
             {pendingAction === "saveSlot" ? "Saving..." : "Save Slot"}
           </button>
-          <button className="secondary" onClick={() => { setForm(emptySlot); setSelectedSlotId(""); }}>Add New Slot</button>
+          <button className="secondary" onClick={addNewSlot} disabled={!activeMap || Boolean(pendingAction)}>Add New Slot</button>
           <button className="ghost danger-text" onClick={deleteSlot} disabled={Boolean(pendingAction)}>
             {pendingAction === "deleteSlot" ? "Deleting..." : "Delete Selected Slot"}
           </button>
@@ -470,4 +515,18 @@ function clamp(value) {
 
 function isPdfMap(file) {
   return String(file || "").toLowerCase().endsWith(".pdf");
+}
+
+function getNextSlotNumber(map) {
+  const count = (map?.slots?.length || 0) + 1;
+  let candidate = `S-${String(count).padStart(3, "0")}`;
+  const existing = new Set((map?.slots || []).map((slot) => slot.slotNo));
+  let next = count;
+
+  while (existing.has(candidate)) {
+    next += 1;
+    candidate = `S-${String(next).padStart(3, "0")}`;
+  }
+
+  return candidate;
 }

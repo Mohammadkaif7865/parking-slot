@@ -315,6 +315,11 @@ input {
   outline: 4px solid rgba(255, 255, 255, 0.9);
 }
 
+.slot.is-draft {
+  border-style: dashed;
+  color: #1f241f;
+}
+
 .position-panel {
   position: sticky;
   top: 0;
