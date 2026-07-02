@@ -1,8 +1,8 @@
 # Smart Parking Map Booking Demo
 
-This is a Next.js demo that renders the exported AutoCAD parking maps and adds clickable booking overlays on top. Location, map, slot, and booking data is now backed by PostgreSQL through Prisma.
+This is a Next.js demo that renders exported AutoCAD parking maps as responsive PNG images and adds clickable booking overlays on top. Location, map, slot, and booking data is now backed by PostgreSQL through Prisma.
 
-The five exported PDF maps are stored here:
+The five exported PNG maps are stored here:
 
 ```text
 public/maps/tisha-plaza/
@@ -82,4 +82,4 @@ For the full application, keep this same idea and expand the database/API layer 
 
 ## GitHub Notes
 
-Do not push confidential client maps unless the client allows it. This repo only allows the first five exported demo PDFs under `public/maps/tisha-plaza/`; other PDF files and DWG source files stay ignored.
+Do not push confidential client maps unless the client allows it. This repo only allows the first five exported demo PNG/PDF maps under `public/maps/tisha-plaza/`; other uploaded archives, PNG files, PDF files, and DWG source files stay ignored.

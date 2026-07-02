@@ -256,23 +256,29 @@ export default function Home() {
           </div>
 
           {activeMap ? (
-            <div className="pdf-stage">
-              <iframe title={activeMap.name} src={`${activeMap.file}#toolbar=0&navpanes=0&view=FitH`} />
-              <div className="slot-layer" aria-label="Clickable parking demo slots" onClick={clearSelection}>
-                {activeMap.slots.map((slot) => (
-                  <button
-                    key={slot.id}
-                    className={`slot ${slot.status} ${selectedSlotId === slot.id ? "is-selected" : ""}`}
-                    style={{ left: `${slot.x}%`, top: `${slot.y}%`, width: `${slot.w}%`, height: `${slot.h}%` }}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      selectSlot(slot);
-                    }}
-                    title={`${slot.slotNo} ${slot.status}`}
-                  >
-                    {slot.slotNo}
-                  </button>
-                ))}
+            <div className="map-stage">
+              <div className="map-frame">
+                {isPdfMap(activeMap.file) ? (
+                  <iframe title={activeMap.name} src={`${activeMap.file}#toolbar=0&navpanes=0&view=FitH`} />
+                ) : (
+                  <img className="map-image" src={activeMap.file} alt={activeMap.name} />
+                )}
+                <div className="slot-layer" aria-label="Clickable parking demo slots" onClick={clearSelection}>
+                  {activeMap.slots.map((slot) => (
+                    <button
+                      key={slot.id}
+                      className={`slot ${slot.status} ${selectedSlotId === slot.id ? "is-selected" : ""}`}
+                      style={{ left: `${slot.x}%`, top: `${slot.y}%`, width: `${slot.w}%`, height: `${slot.h}%` }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        selectSlot(slot);
+                      }}
+                      title={`${slot.slotNo} ${slot.status}`}
+                    >
+                      {slot.slotNo}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ) : (
@@ -321,4 +327,8 @@ export default function Home() {
       </section>
     </main>
   );
+}
+
+function isPdfMap(file) {
+  return String(file || "").toLowerCase().endsWith(".pdf");
 }

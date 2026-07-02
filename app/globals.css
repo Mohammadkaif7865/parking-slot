@@ -248,7 +248,7 @@ input {
   background: var(--selected);
 }
 
-.pdf-stage {
+.map-stage {
   position: relative;
   height: min(72vh, 760px);
   min-height: 560px;
@@ -256,11 +256,26 @@ input {
   overflow: auto;
 }
 
-.pdf-stage iframe {
+.map-frame {
+  position: relative;
   width: 100%;
-  height: 100%;
+  min-width: 720px;
+  background: #fff;
+}
+
+.map-frame iframe {
+  width: 100%;
+  height: min(72vh, 760px);
+  min-height: 560px;
   border: 0;
   background: #202724;
+}
+
+.map-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
 }
 
 .slot-layer {

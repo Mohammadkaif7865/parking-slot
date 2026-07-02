@@ -33,7 +33,7 @@ export async function GET() {
       maps: location.maps.map((map) => ({
         id: map.id,
         name: map.name,
-        file: map.filePath,
+        file: preferredMapFile(map.filePath),
         slots: map.slots.map((slot) => {
           const activeBooking = slot.bookings[0];
           return {
@@ -54,4 +54,11 @@ export async function GET() {
       }))
     }))
   });
+}
+
+function preferredMapFile(filePath) {
+  return String(filePath || "").replace(
+    /^\/maps\/tisha-plaza\/map-([1-5])\.pdf$/i,
+    "/maps/tisha-plaza/map-$1.png"
+  );
 }

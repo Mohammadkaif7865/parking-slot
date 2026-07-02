@@ -3,11 +3,11 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 const maps = [
-  ["Map 1", "/maps/tisha-plaza/map-1.pdf", "A", "Wing A"],
-  ["Map 2", "/maps/tisha-plaza/map-2.pdf", "B", "Wing B"],
-  ["Map 3", "/maps/tisha-plaza/map-3.pdf", "C", "Zone C"],
-  ["Map 4", "/maps/tisha-plaza/map-4.pdf", "D", "Zone D"],
-  ["Map 5", "/maps/tisha-plaza/map-5.pdf", "E", "Stack Area"]
+  ["Map 1", "/maps/tisha-plaza/map-1.png", "A", "Wing A"],
+  ["Map 2", "/maps/tisha-plaza/map-2.png", "B", "Wing B"],
+  ["Map 3", "/maps/tisha-plaza/map-3.png", "C", "Zone C"],
+  ["Map 4", "/maps/tisha-plaza/map-4.png", "D", "Zone D"],
+  ["Map 5", "/maps/tisha-plaza/map-5.png", "E", "Stack Area"]
 ];
 
 function demoSlots(prefix, zone) {
@@ -33,8 +33,8 @@ async function main() {
   for (const [index, [name, filePath, prefix, zone]] of maps.entries()) {
     const map = await prisma.map.upsert({
       where: { id: `tisha-map-${index + 1}` },
-      update: { name, filePath, sourceType: "pdf", locationId: location.id },
-      create: { id: `tisha-map-${index + 1}`, name, filePath, sourceType: "pdf", locationId: location.id }
+      update: { name, filePath, sourceType: "png", locationId: location.id },
+      create: { id: `tisha-map-${index + 1}`, name, filePath, sourceType: "png", locationId: location.id }
     });
 
     for (const slot of demoSlots(prefix, zone)) {

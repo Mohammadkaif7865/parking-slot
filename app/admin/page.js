@@ -271,26 +271,32 @@ export default function AdminPage() {
                   <button className="ghost" type="button" disabled={!form.id} onClick={() => nudge(0, 1)}>Down</button>
                 </div>
               </div>
-              <div className="pdf-stage">
-                <iframe title={activeMap.name} src={`${activeMap.file}#toolbar=0&navpanes=0&view=FitH`} />
-                <div className="slot-layer" onClick={clearSelection}>
-                  {activeMap.slots.map((slot) => {
-                    const display = slot.id === selectedSlotId ? form : slotToForm(slot);
-                    return (
-                      <button
-                        key={slot.id}
-                        className={`slot ${display.status} ${slot.id === selectedSlotId ? "is-selected" : ""}`}
-                        style={{ left: `${display.x}%`, top: `${display.y}%`, width: `${display.w}%`, height: `${display.h}%` }}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          selectSlot(slot);
-                        }}
-                        type="button"
-                      >
-                        {display.slotNo}
-                      </button>
-                    );
-                  })}
+              <div className="map-stage">
+                <div className="map-frame">
+                  {isPdfMap(activeMap.file) ? (
+                    <iframe title={activeMap.name} src={`${activeMap.file}#toolbar=0&navpanes=0&view=FitH`} />
+                  ) : (
+                    <img className="map-image" src={activeMap.file} alt={activeMap.name} />
+                  )}
+                  <div className="slot-layer" onClick={clearSelection}>
+                    {activeMap.slots.map((slot) => {
+                      const display = slot.id === selectedSlotId ? form : slotToForm(slot);
+                      return (
+                        <button
+                          key={slot.id}
+                          className={`slot ${display.status} ${slot.id === selectedSlotId ? "is-selected" : ""}`}
+                          style={{ left: `${display.x}%`, top: `${display.y}%`, width: `${display.w}%`, height: `${display.h}%` }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            selectSlot(slot);
+                          }}
+                          type="button"
+                        >
+                          {display.slotNo}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </>
@@ -355,4 +361,8 @@ function normalizeForm(form) {
 
 function clamp(value) {
   return Math.max(0, Math.min(100, Number(value)));
+}
+
+function isPdfMap(file) {
+  return String(file || "").toLowerCase().endsWith(".pdf");
 }
