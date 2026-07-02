@@ -163,6 +163,30 @@ export default function AdminPage() {
     await loadLocations(locationId, mapId, "");
   }
 
+  async function deleteMap() {
+    if (!activeMap) {
+      setMessage("Select a map first.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete ${activeMap.name}? Slots on this imported map will also be removed.`);
+    if (!confirmed) {
+      return;
+    }
+
+    const response = await fetch(`/api/maps/${activeMap.id}`, { method: "DELETE" });
+    const result = await response.json();
+    if (!response.ok) {
+      setMessage(result.error || "Could not delete map.");
+      return;
+    }
+
+    setSelectedSlotId("");
+    setForm(emptySlot);
+    setMessage(`${result.map.name} deleted.`);
+    await loadLocations(locationId, "", "");
+  }
+
   async function importMap(event) {
     event.preventDefault();
     if (!locationId || !mapFile) {
@@ -239,6 +263,11 @@ export default function AdminPage() {
             <input type="file" accept=".pdf,.png,.jpg,.jpeg,.svg" onChange={(event) => setMapFile(event.target.files?.[0] || null)} />
             <button className="secondary">Import Map</button>
           </form>
+
+          <section>
+            <p className="section-label">Selected Map</p>
+            <button className="ghost danger-text" onClick={deleteMap} disabled={!activeMap} type="button">Delete Imported Map</button>
+          </section>
         </aside>
 
         <section className="map-card">
