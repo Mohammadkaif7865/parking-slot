@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import Toast from "../components/Toast";
 
 const emptySlot = {
   id: "",
@@ -25,6 +26,9 @@ export default function AdminPage() {
   const [mapName, setMapName] = useState("");
   const [mapFile, setMapFile] = useState(null);
   const [message, setMessage] = useState("Manage maps and slot overlays.");
+  const [pendingAction, setPendingAction] = useState("");
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
 
   useEffect(() => {
     const auth = JSON.parse(localStorage.getItem("parking-auth") || "{}");
@@ -50,21 +54,37 @@ export default function AdminPage() {
     return () => socket.disconnect();
   }, [locationId, mapId, selectedSlotId]);
 
-  async function loadLocations(preferredLocationId = locationId, preferredMapId = mapId, preferredSlotId = selectedSlotId) {
-    const response = await fetch("/api/locations", { cache: "no-store" });
-    const data = await response.json();
-    const nextLocations = data.locations || [];
-    const nextLocation = nextLocations.find((item) => item.id === preferredLocationId) || nextLocations[0];
-    const nextMap = nextLocation?.maps.find((item) => item.id === preferredMapId) || nextLocation?.maps[0];
-    const nextSlot = nextMap?.slots.find((item) => item.id === preferredSlotId);
+  async function loadLocations(preferredLocationId = locationId, preferredMapId = mapId, preferredSlotId = selectedSlotId, options = {}) {
+    try {
+      const response = await fetch("/api/locations", { cache: "no-store" });
+      const data = await response.json();
+      const nextLocations = data.locations || [];
+      const nextLocation = nextLocations.find((item) => item.id === preferredLocationId) || nextLocations[0];
+      const nextMap = nextLocation?.maps.find((item) => item.id === preferredMapId) || nextLocation?.maps[0];
+      const nextSlot = nextMap?.slots.find((item) => item.id === preferredSlotId);
 
-    setLocations(nextLocations);
-    setLocationId(nextLocation?.id || "");
-    setMapId(nextMap?.id || "");
-    if (nextSlot) {
-      setSelectedSlotId(nextSlot.id);
-      setForm(slotToForm(nextSlot));
+      setLocations(nextLocations);
+      setLocationId(nextLocation?.id || "");
+      setMapId(nextMap?.id || "");
+      if (nextSlot) {
+        setSelectedSlotId(nextSlot.id);
+        setForm(slotToForm(nextSlot));
+      }
+    } catch (error) {
+      if (!options.silent) {
+        setMessage(`Could not load data: ${error.message}`);
+        showToast("error", `Could not load data: ${error.message}`);
+      }
     }
+  }
+
+  function showToast(type, message) {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    setToast({ type, message });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3200);
   }
 
   const activeLocation = locations.find((location) => location.id === locationId);
@@ -122,50 +142,74 @@ export default function AdminPage() {
     if (!activeMap) return;
     if (!form.slotNo.trim()) {
       setMessage("Slot number is required.");
+      showToast("error", "Slot number is required.");
       return;
     }
 
-    const payload = normalizeForm(form);
-    const url = form.id ? `/api/slots/${form.id}` : `/api/maps/${activeMap.id}/slots`;
-    const method = form.id ? "PATCH" : "POST";
-    const response = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const data = await response.json();
+    setPendingAction("saveSlot");
+    try {
+      const payload = normalizeForm(form);
+      const url = form.id ? `/api/slots/${form.id}` : `/api/maps/${activeMap.id}/slots`;
+      const method = form.id ? "PATCH" : "POST";
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
 
-    if (!response.ok) {
-      setMessage(data.error || "Could not save slot.");
-      return;
+      if (!response.ok) {
+        const error = data.error || "Could not save slot.";
+        setMessage(error);
+        showToast("error", error);
+        return;
+      }
+
+      const saved = data.slot;
+      setSelectedSlotId(saved.id);
+      setMessage(`${saved.slotNo} saved.`);
+      showToast("success", `${saved.slotNo} saved.`);
+      await loadLocations(locationId, mapId, saved.id);
+    } catch (error) {
+      setMessage(`Could not save slot: ${error.message}`);
+      showToast("error", `Could not save slot: ${error.message}`);
+    } finally {
+      setPendingAction("");
     }
-
-    const saved = data.slot;
-    setSelectedSlotId(saved.id);
-    setMessage(`${saved.slotNo} saved.`);
-    await loadLocations(locationId, mapId, saved.id);
   }
 
   async function deleteSlot() {
     if (!selectedSlot) {
       setMessage("Select a slot first.");
+      showToast("error", "Select a slot first.");
       return;
     }
 
-    const response = await fetch(`/api/slots/${selectedSlot.id}`, { method: "DELETE" });
-    if (!response.ok) {
-      setMessage("Could not delete slot.");
-      return;
+    setPendingAction("deleteSlot");
+    try {
+      const response = await fetch(`/api/slots/${selectedSlot.id}`, { method: "DELETE" });
+      if (!response.ok) {
+        setMessage("Could not delete slot.");
+        showToast("error", "Could not delete slot.");
+        return;
+      }
+      setSelectedSlotId("");
+      setForm(emptySlot);
+      setMessage("Slot deleted.");
+      showToast("success", "Slot deleted.");
+      await loadLocations(locationId, mapId, "");
+    } catch (error) {
+      setMessage(`Could not delete slot: ${error.message}`);
+      showToast("error", `Could not delete slot: ${error.message}`);
+    } finally {
+      setPendingAction("");
     }
-    setSelectedSlotId("");
-    setForm(emptySlot);
-    setMessage("Slot deleted.");
-    await loadLocations(locationId, mapId, "");
   }
 
   async function deleteMap() {
     if (!activeMap) {
       setMessage("Select a map first.");
+      showToast("error", "Select a map first.");
       return;
     }
 
@@ -174,42 +218,65 @@ export default function AdminPage() {
       return;
     }
 
-    const response = await fetch(`/api/maps/${activeMap.id}`, { method: "DELETE" });
-    const result = await response.json();
-    if (!response.ok) {
-      setMessage(result.error || "Could not delete map.");
-      return;
-    }
+    setPendingAction("deleteMap");
+    try {
+      const response = await fetch(`/api/maps/${activeMap.id}`, { method: "DELETE" });
+      const result = await response.json();
+      if (!response.ok) {
+        const error = result.error || "Could not delete map.";
+        setMessage(error);
+        showToast("error", error);
+        return;
+      }
 
-    setSelectedSlotId("");
-    setForm(emptySlot);
-    setMessage(`${result.map.name} deleted.`);
-    await loadLocations(locationId, "", "");
+      setSelectedSlotId("");
+      setForm(emptySlot);
+      setMessage(`${result.map.name} deleted.`);
+      showToast("success", `${result.map.name} deleted.`);
+      await loadLocations(locationId, "", "");
+    } catch (error) {
+      setMessage(`Could not delete map: ${error.message}`);
+      showToast("error", `Could not delete map: ${error.message}`);
+    } finally {
+      setPendingAction("");
+    }
   }
 
   async function importMap(event) {
     event.preventDefault();
     if (!locationId || !mapFile) {
       setMessage("Choose a location and map file.");
+      showToast("error", "Choose a location and map file.");
       return;
     }
 
-    const data = new FormData();
-    data.append("locationId", locationId);
-    data.append("name", mapName || mapFile.name);
-    data.append("file", mapFile);
+    setPendingAction("importMap");
+    try {
+      const data = new FormData();
+      data.append("locationId", locationId);
+      data.append("name", mapName || mapFile.name);
+      data.append("file", mapFile);
 
-    const response = await fetch("/api/maps", { method: "POST", body: data });
-    const result = await response.json();
-    if (!response.ok) {
-      setMessage(result.error || "Map import failed.");
-      return;
+      const response = await fetch("/api/maps", { method: "POST", body: data });
+      const result = await response.json();
+      if (!response.ok) {
+        const error = result.error || "Map import failed.";
+        setMessage(error);
+        showToast("error", error);
+        return;
+      }
+
+      setMapName("");
+      setMapFile(null);
+      setMessage("Map imported. Add slots from the editor.");
+      showToast("success", "Map imported.");
+      await loadLocations(locationId, result.map.id, "");
+    } catch (error) {
+      setMessage(`Map import failed: ${error.message}`);
+      showToast("error", `Map import failed: ${error.message}`);
+    } finally {
+      setPendingAction("");
     }
-
-    setMapName("");
-    setMapFile(null);
-    setMessage("Map imported. Add slots from the editor.");
-    await loadLocations(locationId, result.map.id, "");
   }
 
   if (!authorized) {
@@ -261,12 +328,16 @@ export default function AdminPage() {
             <p className="section-label">Import Map</p>
             <input value={mapName} onChange={(event) => setMapName(event.target.value)} placeholder="Map name" />
             <input type="file" accept=".pdf,.png,.jpg,.jpeg,.svg" onChange={(event) => setMapFile(event.target.files?.[0] || null)} />
-            <button className="secondary">Import Map</button>
+            <button className="secondary" disabled={Boolean(pendingAction)}>
+              {pendingAction === "importMap" ? "Importing..." : "Import Map"}
+            </button>
           </form>
 
           <section>
             <p className="section-label">Selected Map</p>
-            <button className="ghost danger-text" onClick={deleteMap} disabled={!activeMap} type="button">Delete Imported Map</button>
+            <button className="ghost danger-text" onClick={deleteMap} disabled={!activeMap || Boolean(pendingAction)} type="button">
+              {pendingAction === "deleteMap" ? "Deleting..." : "Delete Imported Map"}
+            </button>
           </section>
         </aside>
 
@@ -351,12 +422,17 @@ export default function AdminPage() {
             <option value="maintenance">Maintenance</option>
           </select></label>
 
-          <button className="primary" onClick={saveSlot}>Save Slot</button>
+          <button className="primary" onClick={saveSlot} disabled={Boolean(pendingAction)}>
+            {pendingAction === "saveSlot" ? "Saving..." : "Save Slot"}
+          </button>
           <button className="secondary" onClick={() => { setForm(emptySlot); setSelectedSlotId(""); }}>Add New Slot</button>
-          <button className="ghost danger-text" onClick={deleteSlot}>Delete Selected Slot</button>
+          <button className="ghost danger-text" onClick={deleteSlot} disabled={Boolean(pendingAction)}>
+            {pendingAction === "deleteSlot" ? "Deleting..." : "Delete Selected Slot"}
+          </button>
           <p className="message">{message}</p>
         </aside>
       </section>
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </main>
   );
 }

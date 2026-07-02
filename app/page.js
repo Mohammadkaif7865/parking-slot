@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import Toast from "./components/Toast";
 
 export default function Home() {
   const [locations, setLocations] = useState([]);
@@ -13,6 +14,9 @@ export default function Home() {
   const [stackLevel, setStackLevel] = useState("Top");
   const [message, setMessage] = useState("Loading maps from PostgreSQL...");
   const [loading, setLoading] = useState(true);
+  const [pendingAction, setPendingAction] = useState("");
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
 
   useEffect(() => {
     loadLocations();
@@ -53,12 +57,22 @@ export default function Home() {
     } catch (error) {
       if (!options.silent) {
         setMessage(`Could not load database data: ${error.message}`);
+        showToast("error", `Could not load data: ${error.message}`);
       }
     } finally {
       if (!options.silent) {
         setLoading(false);
       }
     }
+  }
+
+  function showToast(type, message) {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    setToast({ type, message });
+    toastTimerRef.current = setTimeout(() => setToast(null), 3200);
   }
 
   const activeLocation = locations.find((location) => location.id === locationId);
@@ -114,73 +128,112 @@ export default function Home() {
   async function bookSlot() {
     if (!selectedSlot) {
       setMessage("Select a parking slot first.");
+      showToast("error", "Select a parking slot first.");
       return;
     }
     if (selectedSlot.status === "reserved" || selectedSlot.status === "maintenance") {
       setMessage(`${selectedSlot.slotNo} is ${selectedSlot.status} and cannot be booked.`);
+      showToast("error", `${selectedSlot.slotNo} is ${selectedSlot.status}.`);
       return;
     }
     if (mobile && !/^[0-9]{10}$/.test(mobile)) {
       setMessage("Mobile number should be 10 digits.");
+      showToast("error", "Mobile number should be 10 digits.");
       return;
     }
 
-    const response = await fetch(`/api/slots/${selectedSlot.id}/book`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        allottee: allottee || "Demo User",
-        mobile,
-        level: selectedSlot.type.includes("Stack") ? stackLevel : ""
-      })
-    });
+    setPendingAction("book");
+    try {
+      const response = await fetch(`/api/slots/${selectedSlot.id}/book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          allottee: allottee || "Demo User",
+          mobile,
+          level: selectedSlot.type.includes("Stack") ? stackLevel : ""
+        })
+      });
 
-    const data = await response.json();
-    if (!response.ok) {
-      setMessage(data.error || "Booking failed.");
-      return;
+      const data = await response.json();
+      if (!response.ok) {
+        const error = data.error || "Booking failed.";
+        setMessage(error);
+        showToast("error", error);
+        return;
+      }
+
+      const success = `${selectedSlot.slotNo} booked.`;
+      setMessage(`${selectedSlot.slotNo} booked in PostgreSQL.`);
+      showToast("success", success);
+      await loadLocations(locationId, mapId, selectedSlot.id);
+    } catch (error) {
+      setMessage(`Booking failed: ${error.message}`);
+      showToast("error", `Booking failed: ${error.message}`);
+    } finally {
+      setPendingAction("");
     }
-
-    setMessage(`${selectedSlot.slotNo} booked in PostgreSQL.`);
-    await loadLocations(locationId, mapId, selectedSlot.id);
   }
 
   async function releaseSlot() {
     if (!selectedSlot) {
       setMessage("Select a parking slot first.");
+      showToast("error", "Select a parking slot first.");
       return;
     }
 
-    const response = await fetch(`/api/slots/${selectedSlot.id}/release`, { method: "POST" });
-    const data = await response.json();
-    if (!response.ok) {
-      setMessage(data.error || "Release failed.");
-      return;
-    }
+    setPendingAction("release");
+    try {
+      const response = await fetch(`/api/slots/${selectedSlot.id}/release`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) {
+        const error = data.error || "Release failed.";
+        setMessage(error);
+        showToast("error", error);
+        return;
+      }
 
-    setMessage(`${selectedSlot.slotNo} released in PostgreSQL.`);
-    await loadLocations(locationId, mapId, selectedSlot.id);
+      setMessage(`${selectedSlot.slotNo} released in PostgreSQL.`);
+      showToast("success", `${selectedSlot.slotNo} released.`);
+      await loadLocations(locationId, mapId, selectedSlot.id);
+    } catch (error) {
+      setMessage(`Release failed: ${error.message}`);
+      showToast("error", `Release failed: ${error.message}`);
+    } finally {
+      setPendingAction("");
+    }
   }
 
   async function updateStatus(status) {
     if (!selectedSlot) {
       setMessage("Select a parking slot first.");
+      showToast("error", "Select a parking slot first.");
       return;
     }
 
-    const response = await fetch(`/api/slots/${selectedSlot.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      setMessage(data.error || "Status update failed.");
-      return;
-    }
+    setPendingAction(`status:${status}`);
+    try {
+      const response = await fetch(`/api/slots/${selectedSlot.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const error = data.error || "Status update failed.";
+        setMessage(error);
+        showToast("error", error);
+        return;
+      }
 
-    setMessage(`${selectedSlot.slotNo} marked ${status}.`);
-    await loadLocations(locationId, mapId, selectedSlot.id);
+      setMessage(`${selectedSlot.slotNo} marked ${status}.`);
+      showToast("success", `${selectedSlot.slotNo} marked ${status}.`);
+      await loadLocations(locationId, mapId, selectedSlot.id);
+    } catch (error) {
+      setMessage(`Status update failed: ${error.message}`);
+      showToast("error", `Status update failed: ${error.message}`);
+    } finally {
+      setPendingAction("");
+    }
   }
 
   return (
@@ -317,14 +370,25 @@ export default function Home() {
             <input value={mobile} onChange={(event) => setMobile(event.target.value)} placeholder="9876543210" maxLength={10} />
           </label>
 
-          <button className="primary" onClick={bookSlot}>Book Demo Parking</button>
-          <button className="secondary" onClick={releaseSlot}>Release Slot</button>
-          <button className="ghost" onClick={() => updateStatus("reserved")}>Mark Reserved</button>
-          <button className="ghost" onClick={() => updateStatus("maintenance")}>Mark Maintenance</button>
-          <button className="ghost" onClick={() => updateStatus("available")}>Mark Available</button>
+          <button className="primary" onClick={bookSlot} disabled={Boolean(pendingAction)}>
+            {pendingAction === "book" ? "Booking..." : "Book Demo Parking"}
+          </button>
+          <button className="secondary" onClick={releaseSlot} disabled={Boolean(pendingAction)}>
+            {pendingAction === "release" ? "Releasing..." : "Release Slot"}
+          </button>
+          <button className="ghost" onClick={() => updateStatus("reserved")} disabled={Boolean(pendingAction)}>
+            {pendingAction === "status:reserved" ? "Updating..." : "Mark Reserved"}
+          </button>
+          <button className="ghost" onClick={() => updateStatus("maintenance")} disabled={Boolean(pendingAction)}>
+            {pendingAction === "status:maintenance" ? "Updating..." : "Mark Maintenance"}
+          </button>
+          <button className="ghost" onClick={() => updateStatus("available")} disabled={Boolean(pendingAction)}>
+            {pendingAction === "status:available" ? "Updating..." : "Mark Available"}
+          </button>
           <p className="message">{message}</p>
         </aside>
       </section>
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </main>
   );
 }

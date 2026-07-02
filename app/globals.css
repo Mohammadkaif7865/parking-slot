@@ -473,6 +473,50 @@ label {
   margin: 0;
 }
 
+.toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  max-width: min(420px, calc(100vw - 36px));
+  gap: 12px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(21, 32, 28, 0.18);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.toast.success {
+  border-color: #b6dcc9;
+  background: #eef9f3;
+  color: #176044;
+}
+
+.toast.error {
+  border-color: #efc0bd;
+  background: #fff1f0;
+  color: #a12a25;
+}
+
+.toast button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .auth-page {
   display: grid;
   min-height: 100vh;
