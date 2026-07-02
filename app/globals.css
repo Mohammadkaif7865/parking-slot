@@ -305,6 +305,10 @@ input {
   background: color-mix(in srgb, var(--booked) 82%, transparent);
 }
 
+.slot.partial {
+  background: color-mix(in srgb, #d9a02f 82%, transparent);
+}
+
 .slot.reserved {
   background: color-mix(in srgb, var(--reserved) 80%, transparent);
 }

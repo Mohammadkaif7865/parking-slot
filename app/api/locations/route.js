@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
+import { getLevelOccupancy, getOccupancyStatus } from "../../../lib/parking-levels";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,7 @@ export async function GET() {
             include: {
               bookings: {
                 where: { status: "active" },
-                orderBy: { createdAt: "desc" },
-                take: 1
+                orderBy: { createdAt: "desc" }
               }
             }
           }
@@ -38,6 +38,7 @@ export async function GET() {
           file: map.filePath,
           slots: map.slots.map((slot) => {
             const activeBooking = slot.bookings[0];
+            const occupancy = getLevelOccupancy(slot.type, slot.bookings);
             return {
               id: slot.id,
               slotNo: slot.slotNo,
@@ -48,6 +49,16 @@ export async function GET() {
               w: slot.width,
               h: slot.height,
               status: slot.status,
+              occupancyStatus: getOccupancyStatus(slot.status, slot.type, slot.bookings),
+              levels: occupancy.levels,
+              bookedLevels: occupancy.bookedLevels,
+              availableLevels: occupancy.availableLevels,
+              bookings: slot.bookings.map((booking) => ({
+                id: booking.id,
+                level: booking.level || "",
+                allottee: booking.allottee || "",
+                mobile: booking.mobile || ""
+              })),
               level: activeBooking?.level || "",
               allottee: activeBooking?.allottee || "",
               mobile: activeBooking?.mobile || ""

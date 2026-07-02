@@ -78,6 +78,10 @@ export default function Home() {
   const activeLocation = locations.find((location) => location.id === locationId);
   const activeMap = activeLocation?.maps.find((map) => map.id === mapId) || activeLocation?.maps[0];
   const selectedSlot = activeMap?.slots.find((slot) => slot.id === selectedSlotId);
+  const isStackSlot = (selectedSlot?.levels?.length || 0) > 1;
+  const selectedLevelBooked = isStackSlot && selectedSlot?.bookedLevels?.includes(stackLevel);
+  const canBookSelectedSlot = selectedSlot && !pendingAction && (isStackSlot ? !selectedLevelBooked : selectedSlot.occupancyStatus !== "booked");
+  const canReleaseSelectedSlot = selectedSlot && !pendingAction && (isStackSlot ? selectedLevelBooked : selectedSlot.occupancyStatus === "booked");
 
   useEffect(() => {
     if (!selectedSlot) {
@@ -87,9 +91,13 @@ export default function Home() {
       return;
     }
 
-    setAllottee(selectedSlot.allottee || "");
-    setMobile(selectedSlot.mobile || "");
-    setStackLevel(selectedSlot.level || "Top");
+    const selectedLevelBooking = selectedSlot.bookings?.find((booking) => booking.level === stackLevel);
+    const fallbackLevel = selectedSlot.availableLevels?.[0] || selectedSlot.bookedLevels?.[0] || selectedSlot.levels?.[0] || "Top";
+    const booking = selectedLevelBooking || selectedSlot.bookings?.find((item) => item.level === fallbackLevel) || selectedSlot.bookings?.[0];
+
+    setAllottee(booking?.allottee || selectedSlot.allottee || "");
+    setMobile(booking?.mobile || selectedSlot.mobile || "");
+    setStackLevel(fallbackLevel);
   }, [selectedSlot]);
 
   const stats = useMemo(() => {
@@ -131,9 +139,20 @@ export default function Home() {
       showToast("error", "Select a parking slot first.");
       return;
     }
-    if (selectedSlot.status === "reserved" || selectedSlot.status === "maintenance") {
-      setMessage(`${selectedSlot.slotNo} is ${selectedSlot.status} and cannot be booked.`);
-      showToast("error", `${selectedSlot.slotNo} is ${selectedSlot.status}.`);
+    const displayStatus = selectedSlot.occupancyStatus || selectedSlot.status;
+    if (displayStatus === "reserved" || displayStatus === "maintenance") {
+      setMessage(`${selectedSlot.slotNo} is ${displayStatus} and cannot be booked.`);
+      showToast("error", `${selectedSlot.slotNo} is ${displayStatus}.`);
+      return;
+    }
+    if (!selectedSlot.availableLevels?.length) {
+      setMessage(`${selectedSlot.slotNo} is fully booked.`);
+      showToast("error", `${selectedSlot.slotNo} is fully booked.`);
+      return;
+    }
+    if (isStackSlot && selectedLevelBooked) {
+      setMessage(`${selectedSlot.slotNo} ${stackLevel} level is already booked.`);
+      showToast("error", `${selectedSlot.slotNo} ${stackLevel} is already booked.`);
       return;
     }
     if (mobile && !/^[0-9]{10}$/.test(mobile)) {
@@ -150,7 +169,7 @@ export default function Home() {
         body: JSON.stringify({
           allottee: allottee || "Demo User",
           mobile,
-          level: selectedSlot.type.includes("Stack") ? stackLevel : ""
+        level: selectedSlot.levels?.length > 1 ? stackLevel : "Single"
         })
       });
 
@@ -162,7 +181,7 @@ export default function Home() {
         return;
       }
 
-      const success = `${selectedSlot.slotNo} booked.`;
+      const success = selectedSlot.levels?.length > 1 ? `${selectedSlot.slotNo} ${stackLevel} booked.` : `${selectedSlot.slotNo} booked.`;
       setMessage(`${selectedSlot.slotNo} booked in PostgreSQL.`);
       showToast("success", success);
       await loadLocations(locationId, mapId, selectedSlot.id);
@@ -180,10 +199,19 @@ export default function Home() {
       showToast("error", "Select a parking slot first.");
       return;
     }
+    if (isStackSlot && !selectedLevelBooked) {
+      setMessage(`${selectedSlot.slotNo} ${stackLevel} level is not booked.`);
+      showToast("error", `${selectedSlot.slotNo} ${stackLevel} is not booked.`);
+      return;
+    }
 
     setPendingAction("release");
     try {
-      const response = await fetch(`/api/slots/${selectedSlot.id}/release`, { method: "POST" });
+      const response = await fetch(`/api/slots/${selectedSlot.id}/release`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ level: selectedSlot.levels?.length > 1 ? stackLevel : "Single" })
+      });
       const data = await response.json();
       if (!response.ok) {
         const error = data.error || "Release failed.";
@@ -193,7 +221,7 @@ export default function Home() {
       }
 
       setMessage(`${selectedSlot.slotNo} released in PostgreSQL.`);
-      showToast("success", `${selectedSlot.slotNo} released.`);
+      showToast("success", selectedSlot.levels?.length > 1 ? `${selectedSlot.slotNo} ${stackLevel} released.` : `${selectedSlot.slotNo} released.`);
       await loadLocations(locationId, mapId, selectedSlot.id);
     } catch (error) {
       setMessage(`Release failed: ${error.message}`);
@@ -320,7 +348,7 @@ export default function Home() {
                   {activeMap.slots.map((slot) => (
                     <button
                       key={slot.id}
-                      className={`slot ${slot.status} ${selectedSlotId === slot.id ? "is-selected" : ""}`}
+                    className={`slot ${slot.occupancyStatus || slot.status} ${selectedSlotId === slot.id ? "is-selected" : ""}`}
                       style={{ left: `${slot.x}%`, top: `${slot.y}%`, width: `${slot.w}%`, height: `${slot.h}%` }}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -347,16 +375,19 @@ export default function Home() {
             <div><dt>Map</dt><dd>{activeMap?.name || "-"}</dd></div>
             <div><dt>Zone</dt><dd>{selectedSlot?.zone || "-"}</dd></div>
             <div><dt>Type</dt><dd>{selectedSlot?.type || "-"}</dd></div>
-            <div><dt>Status</dt><dd>{selectedSlot?.status || "-"}</dd></div>
+            <div><dt>Status</dt><dd>{selectedSlot?.occupancyStatus || selectedSlot?.status || "-"}</dd></div>
+            <div><dt>Levels</dt><dd>{selectedSlot?.bookedLevels?.length ? `${selectedSlot.bookedLevels.join(", ")} booked` : "-"}</dd></div>
           </dl>
 
-          {selectedSlot?.type.includes("Stack") && (
+          {selectedSlot?.levels?.length > 1 && (
             <label>
               Stack Level
               <select value={stackLevel} onChange={(event) => setStackLevel(event.target.value)}>
-                <option value="Top">Top</option>
-                <option value="Middle">Middle</option>
-                <option value="Bottom">Bottom</option>
+                {selectedSlot.levels.map((level) => (
+                  <option key={level} value={level}>
+                    {level}{selectedSlot.bookedLevels?.includes(level) ? " (booked)" : ""}
+                  </option>
+                ))}
               </select>
             </label>
           )}
@@ -370,10 +401,10 @@ export default function Home() {
             <input value={mobile} onChange={(event) => setMobile(event.target.value)} placeholder="9876543210" maxLength={10} />
           </label>
 
-          <button className="primary" onClick={bookSlot} disabled={Boolean(pendingAction)}>
+          <button className="primary" onClick={bookSlot} disabled={!canBookSelectedSlot}>
             {pendingAction === "book" ? "Booking..." : "Book Demo Parking"}
           </button>
-          <button className="secondary" onClick={releaseSlot} disabled={Boolean(pendingAction)}>
+          <button className="secondary" onClick={releaseSlot} disabled={!canReleaseSelectedSlot}>
             {pendingAction === "release" ? "Releasing..." : "Release Slot"}
           </button>
           <button className="ghost" onClick={() => updateStatus("reserved")} disabled={Boolean(pendingAction)}>
