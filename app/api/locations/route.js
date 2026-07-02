@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { existsSync } from "fs";
+import path from "path";
 import { prisma } from "../../../lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -30,28 +32,31 @@ export async function GET() {
       id: location.id,
       name: location.name,
       city: location.city,
-      maps: location.maps.map((map) => ({
-        id: map.id,
-        name: map.name,
-        file: preferredMapFile(map.filePath),
-        slots: map.slots.map((slot) => {
-          const activeBooking = slot.bookings[0];
-          return {
-            id: slot.id,
-            slotNo: slot.slotNo,
-            zone: slot.zone,
-            type: slot.type,
-            x: slot.x,
-            y: slot.y,
-            w: slot.width,
-            h: slot.height,
-            status: slot.status,
-            level: activeBooking?.level || "",
-            allottee: activeBooking?.allottee || "",
-            mobile: activeBooking?.mobile || ""
-          };
-        })
-      }))
+      maps: location.maps
+        .map((map) => ({ ...map, filePath: preferredMapFile(map.filePath) }))
+        .filter((map) => publicMapExists(map.filePath))
+        .map((map) => ({
+          id: map.id,
+          name: map.name,
+          file: map.filePath,
+          slots: map.slots.map((slot) => {
+            const activeBooking = slot.bookings[0];
+            return {
+              id: slot.id,
+              slotNo: slot.slotNo,
+              zone: slot.zone,
+              type: slot.type,
+              x: slot.x,
+              y: slot.y,
+              w: slot.width,
+              h: slot.height,
+              status: slot.status,
+              level: activeBooking?.level || "",
+              allottee: activeBooking?.allottee || "",
+              mobile: activeBooking?.mobile || ""
+            };
+          })
+        }))
     }))
   });
 }
@@ -61,4 +66,12 @@ function preferredMapFile(filePath) {
     /^\/maps\/tisha-plaza\/map-([1-5])\.pdf$/i,
     "/maps/tisha-plaza/map-$1.png"
   );
+}
+
+function publicMapExists(filePath) {
+  if (!filePath || !filePath.startsWith("/maps/")) {
+    return true;
+  }
+
+  return existsSync(path.join(process.cwd(), "public", filePath));
 }
