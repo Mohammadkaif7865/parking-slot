@@ -4,6 +4,14 @@ import { broadcastRealtime } from "../../../../lib/realtime";
 
 export async function PATCH(request, { params }) {
   const body = await request.json();
+  const currentSlot = await prisma.parkingSlot.findUnique({
+    where: { id: params.slotId },
+    include: { bookings: { where: { status: "active" } } }
+  });
+
+  if (!currentSlot) {
+    return NextResponse.json({ error: "Slot not found." }, { status: 404 });
+  }
 
   const data = {};
   for (const field of ["slotNo", "zone", "type", "status"]) {
@@ -13,6 +21,13 @@ export async function PATCH(request, { params }) {
   if (body.y !== undefined) data.y = Number(body.y);
   if (body.width !== undefined) data.width = Number(body.width);
   if (body.height !== undefined) data.height = Number(body.height);
+
+  if (data.type && data.type !== currentSlot.type && currentSlot.bookings.length) {
+    return NextResponse.json(
+      { error: "Release active bookings before changing slot tier." },
+      { status: 400 }
+    );
+  }
 
   if (data.status && ["available", "reserved", "maintenance"].includes(data.status)) {
     await prisma.booking.updateMany({

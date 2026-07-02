@@ -574,6 +574,14 @@ label {
   color: #b83232;
 }
 
+.field-note {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 6px;
+}
+
 @media (max-width: 1120px) {
   .topbar,
   .map-toolbar {

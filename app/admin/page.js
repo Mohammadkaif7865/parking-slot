@@ -92,6 +92,7 @@ export default function AdminPage() {
   const activeLocation = locations.find((location) => location.id === locationId);
   const activeMap = activeLocation?.maps.find((map) => map.id === mapId) || activeLocation?.maps[0];
   const selectedSlot = activeMap?.slots.find((slot) => slot.id === selectedSlotId);
+  const selectedSlotHasBookings = Boolean(selectedSlot?.bookings?.length);
   const isDraftSlot = selectedSlotId === draftSlotId && !form.id && Boolean(form.slotNo);
   const canEditPosition = Boolean(form.id || isDraftSlot);
 
@@ -456,11 +457,15 @@ export default function AdminPage() {
 
           <label>Slot Number<input value={form.slotNo} onChange={(event) => updateForm("slotNo", event.target.value)} placeholder="A-101" /></label>
           <label>Zone<input value={form.zone} onChange={(event) => updateForm("zone", event.target.value)} placeholder="Wing A" /></label>
-          <label>Type<select value={form.type} onChange={(event) => updateForm("type", event.target.value)}>
-            <option>Regular</option>
-            <option>Stack 2-tier</option>
-            <option>Stack 3-tier</option>
-          </select></label>
+          <label>
+            Type
+            <select value={form.type} disabled={selectedSlotHasBookings} onChange={(event) => updateForm("type", event.target.value)}>
+              <option>Regular</option>
+              <option>Stack 2-tier</option>
+              <option>Stack 3-tier</option>
+            </select>
+            {selectedSlotHasBookings && <small className="field-note">Release active bookings before changing tier.</small>}
+          </label>
           <label>Status<select value={form.status} onChange={(event) => updateForm("status", event.target.value)}>
             <option value="available">Available</option>
             <option value="reserved">Reserved</option>
