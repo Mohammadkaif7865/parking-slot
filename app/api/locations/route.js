@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { existsSync } from "fs";
-import path from "path";
 import { prisma } from "../../../lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +32,6 @@ export async function GET() {
       city: location.city,
       maps: location.maps
         .map((map) => ({ ...map, filePath: preferredMapFile(map.filePath) }))
-        .filter((map) => publicMapExists(map.filePath))
         .map((map) => ({
           id: map.id,
           name: map.name,
@@ -66,12 +63,4 @@ function preferredMapFile(filePath) {
     /^\/maps\/tisha-plaza\/map-([1-5])\.pdf$/i,
     "/maps/tisha-plaza/map-$1.png"
   );
-}
-
-function publicMapExists(filePath) {
-  if (!filePath || !filePath.startsWith("/maps/")) {
-    return true;
-  }
-
-  return existsSync(path.join(process.cwd(), "public", filePath));
 }
