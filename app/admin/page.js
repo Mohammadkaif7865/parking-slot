@@ -350,7 +350,7 @@ export default function AdminPage() {
               {activeLocation?.maps.map((map) => (
                 <button className={`map-item ${map.id === activeMap?.id ? "active" : ""}`} key={map.id} onClick={() => selectMap(map.id)}>
                   <span>{map.name}</span>
-                  <small>{map.file}</small>
+                  <small>{displayMapSource(map.file)}</small>
                 </button>
               ))}
             </div>
@@ -531,6 +531,10 @@ function clamp(value) {
 
 function isPdfMap(file) {
   return String(file || "").toLowerCase().endsWith(".pdf");
+}
+
+function displayMapSource(file) {
+  return String(file || "").startsWith("data:") ? "Uploaded image" : file;
 }
 
 function getNextSlotNumber(map) {

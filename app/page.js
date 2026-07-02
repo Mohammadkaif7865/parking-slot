@@ -315,7 +315,7 @@ export default function Home() {
                     onClick={() => selectMap(map.id)}
                   >
                     <span>{map.name}</span>
-                    <small>{map.file}</small>
+                    <small>{displayMapSource(map.file)}</small>
                   </button>
                 ))
               )}
@@ -433,6 +433,10 @@ export default function Home() {
 
 function isPdfMap(file) {
   return String(file || "").toLowerCase().endsWith(".pdf");
+}
+
+function displayMapSource(file) {
+  return String(file || "").startsWith("data:") ? "Uploaded image" : file;
 }
 
 function getBookingForLevel(slot, level) {
