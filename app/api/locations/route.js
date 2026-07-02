@@ -30,48 +30,39 @@ export async function GET() {
       id: location.id,
       name: location.name,
       city: location.city,
-      maps: location.maps
-        .map((map) => ({ ...map, filePath: preferredMapFile(map.filePath) }))
-        .map((map) => ({
-          id: map.id,
-          name: map.name,
-          file: map.filePath,
-          slots: map.slots.map((slot) => {
-            const activeBooking = slot.bookings[0];
-            const occupancy = getLevelOccupancy(slot.type, slot.bookings);
-            return {
-              id: slot.id,
-              slotNo: slot.slotNo,
-              zone: slot.zone,
-              type: slot.type,
-              x: slot.x,
-              y: slot.y,
-              w: slot.width,
-              h: slot.height,
-              status: slot.status,
-              occupancyStatus: getOccupancyStatus(slot.status, slot.type, slot.bookings),
-              levels: occupancy.levels,
-              bookedLevels: occupancy.bookedLevels,
-              availableLevels: occupancy.availableLevels,
-              bookings: slot.bookings.map((booking) => ({
-                id: booking.id,
-                level: booking.level || "",
-                allottee: booking.allottee || "",
-                mobile: booking.mobile || ""
-              })),
-              level: activeBooking?.level || "",
-              allottee: activeBooking?.allottee || "",
-              mobile: activeBooking?.mobile || ""
-            };
-          })
-        }))
+      maps: location.maps.map((map) => ({
+        id: map.id,
+        name: map.name,
+        file: map.filePath,
+        slots: map.slots.map((slot) => {
+          const activeBooking = slot.bookings[0];
+          const occupancy = getLevelOccupancy(slot.type, slot.bookings);
+          return {
+            id: slot.id,
+            slotNo: slot.slotNo,
+            zone: slot.zone,
+            type: slot.type,
+            x: slot.x,
+            y: slot.y,
+            w: slot.width,
+            h: slot.height,
+            status: slot.status,
+            occupancyStatus: getOccupancyStatus(slot.status, slot.type, slot.bookings),
+            levels: occupancy.levels,
+            bookedLevels: occupancy.bookedLevels,
+            availableLevels: occupancy.availableLevels,
+            bookings: slot.bookings.map((booking) => ({
+              id: booking.id,
+              level: booking.level || "",
+              allottee: booking.allottee || "",
+              mobile: booking.mobile || ""
+            })),
+            level: activeBooking?.level || "",
+            allottee: activeBooking?.allottee || "",
+            mobile: activeBooking?.mobile || ""
+          };
+        })
+      }))
     }))
   });
-}
-
-function preferredMapFile(filePath) {
-  return String(filePath || "").replace(
-    /^\/maps\/tisha-plaza\/map-([1-5])\.pdf$/i,
-    "/maps/tisha-plaza/map-$1.png"
-  );
 }

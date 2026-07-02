@@ -5,10 +5,6 @@ import { prisma } from "../../../../lib/prisma";
 import { broadcastRealtime } from "../../../../lib/realtime";
 
 export async function DELETE(_request, { params }) {
-  if (/^tisha-map-[1-5]$/.test(params.mapId)) {
-    return NextResponse.json({ error: "Demo maps cannot be deleted." }, { status: 400 });
-  }
-
   const map = await prisma.map.findUnique({ where: { id: params.mapId } });
   if (!map) {
     return NextResponse.json({ error: "Map not found." }, { status: 404 });
