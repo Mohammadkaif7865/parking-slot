@@ -82,6 +82,7 @@ export default function Home() {
   const selectedLevelBooked = isStackSlot && selectedSlot?.bookedLevels?.includes(stackLevel);
   const canBookSelectedSlot = selectedSlot && !pendingAction && (isStackSlot ? !selectedLevelBooked : selectedSlot.occupancyStatus !== "booked");
   const canReleaseSelectedSlot = selectedSlot && !pendingAction && (isStackSlot ? selectedLevelBooked : selectedSlot.occupancyStatus === "booked");
+  const selectedLevelBooking = selectedSlot ? getBookingForLevel(selectedSlot, stackLevel) : null;
 
   useEffect(() => {
     if (!selectedSlot) {
@@ -91,14 +92,19 @@ export default function Home() {
       return;
     }
 
-    const selectedLevelBooking = selectedSlot.bookings?.find((booking) => booking.level === stackLevel);
     const fallbackLevel = selectedSlot.availableLevels?.[0] || selectedSlot.bookedLevels?.[0] || selectedSlot.levels?.[0] || "Top";
-    const booking = selectedLevelBooking || selectedSlot.bookings?.find((item) => item.level === fallbackLevel) || selectedSlot.bookings?.[0];
-
-    setAllottee(booking?.allottee || selectedSlot.allottee || "");
-    setMobile(booking?.mobile || selectedSlot.mobile || "");
     setStackLevel(fallbackLevel);
   }, [selectedSlot]);
+
+  useEffect(() => {
+    if (!selectedSlot) {
+      return;
+    }
+
+    const booking = getBookingForLevel(selectedSlot, stackLevel);
+    setAllottee(booking?.allottee || "");
+    setMobile(booking?.mobile || "");
+  }, [selectedSlot, stackLevel]);
 
   const stats = useMemo(() => {
     const slots = locations.flatMap((location) => location.maps.flatMap((map) => map.slots));
@@ -169,7 +175,7 @@ export default function Home() {
         body: JSON.stringify({
           allottee: allottee || "Demo User",
           mobile,
-        level: selectedSlot.levels?.length > 1 ? stackLevel : "Single"
+          level: selectedSlot.levels?.length > 1 ? stackLevel : "Single"
         })
       });
 
@@ -377,6 +383,7 @@ export default function Home() {
             <div><dt>Type</dt><dd>{selectedSlot?.type || "-"}</dd></div>
             <div><dt>Status</dt><dd>{selectedSlot?.occupancyStatus || selectedSlot?.status || "-"}</dd></div>
             <div><dt>Levels</dt><dd>{selectedSlot?.bookedLevels?.length ? `${selectedSlot.bookedLevels.join(", ")} booked` : "-"}</dd></div>
+            {isStackSlot && <div><dt>Selected Level</dt><dd>{selectedLevelBooking ? selectedLevelBooking.allottee || "Booked" : "Empty"}</dd></div>}
           </dl>
 
           {selectedSlot?.levels?.length > 1 && (
@@ -426,4 +433,9 @@ export default function Home() {
 
 function isPdfMap(file) {
   return String(file || "").toLowerCase().endsWith(".pdf");
+}
+
+function getBookingForLevel(slot, level) {
+  const normalizedLevel = slot.levels?.length > 1 ? level : "Single";
+  return slot.bookings?.find((booking) => (booking.level || "Single") === normalizedLevel);
 }

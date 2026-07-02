@@ -416,7 +416,7 @@ export default function AdminPage() {
                       return (
                         <button
                           key={slot.id}
-                          className={`slot ${display.status} ${slot.id === selectedSlotId ? "is-selected" : ""}`}
+                          className={`slot ${slot.id === selectedSlotId ? display.status : slot.occupancyStatus || display.status} ${slot.id === selectedSlotId ? "is-selected" : ""}`}
                           style={{ left: `${display.x}%`, top: `${display.y}%`, width: `${display.w}%`, height: `${display.h}%` }}
                           onClick={(event) => {
                             event.stopPropagation();
@@ -466,6 +466,22 @@ export default function AdminPage() {
             <option value="reserved">Reserved</option>
             <option value="maintenance">Maintenance</option>
           </select></label>
+
+          {selectedSlot && (
+            <section className="level-bookings">
+              <p className="section-label">Booking Levels</p>
+              {(selectedSlot.levels || ["Single"]).map((level) => {
+                const booking = getBookingForLevel(selectedSlot, level);
+                return (
+                  <div className="level-booking" key={level}>
+                    <strong>{level}</strong>
+                    <span>{booking ? booking.allottee || "Booked" : "Empty"}</span>
+                    <small>{booking?.mobile || ""}</small>
+                  </div>
+                );
+              })}
+            </section>
+          )}
 
           <button className="primary" onClick={saveSlot} disabled={Boolean(pendingAction)}>
             {pendingAction === "saveSlot" ? "Saving..." : "Save Slot"}
@@ -529,4 +545,9 @@ function getNextSlotNumber(map) {
   }
 
   return candidate;
+}
+
+function getBookingForLevel(slot, level) {
+  const normalizedLevel = (slot.levels?.length || 0) > 1 ? level : "Single";
+  return slot.bookings?.find((booking) => (booking.level || "Single") === normalizedLevel);
 }

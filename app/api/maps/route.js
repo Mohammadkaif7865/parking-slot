@@ -31,22 +31,41 @@ export async function POST(request) {
     return NextResponse.json({ error: "Only PDF, image, or SVG maps are supported." }, { status: 400 });
   }
 
-  const folder = path.join(process.cwd(), "public", "maps", locationId);
-  await mkdir(folder, { recursive: true });
-  const fileName = `${Date.now()}-${slugify(name)}${extension}`;
-  const fullPath = path.join(folder, fileName);
   const bytes = Buffer.from(await file.arrayBuffer());
-  await writeFile(fullPath, bytes);
+  const sourceType = extension.replace(".", "");
+  let filePath;
+
+  if (["png", "jpg", "jpeg", "svg"].includes(sourceType)) {
+    filePath = toDataUrl(sourceType, bytes);
+  } else {
+    const folder = path.join(process.cwd(), "public", "maps", locationId);
+    await mkdir(folder, { recursive: true });
+    const fileName = `${Date.now()}-${slugify(name)}${extension}`;
+    const fullPath = path.join(folder, fileName);
+    await writeFile(fullPath, bytes);
+    filePath = `/maps/${locationId}/${fileName}`;
+  }
 
   const map = await prisma.map.create({
     data: {
       locationId,
       name,
-      filePath: `/maps/${locationId}/${fileName}`,
-      sourceType: extension.replace(".", "")
+      filePath,
+      sourceType
     }
   });
 
   await broadcastRealtime("map:changed", { locationId, mapId: map.id, action: "created" });
   return NextResponse.json({ map });
+}
+
+function toDataUrl(sourceType, bytes) {
+  const mimeTypes = {
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    svg: "image/svg+xml"
+  };
+
+  return `data:${mimeTypes[sourceType]};base64,${bytes.toString("base64")}`;
 }
