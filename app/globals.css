@@ -715,7 +715,7 @@ label {
 }
 
 .user-stage {
-  height: calc(100vh - 72px);
+  height: calc(100vh - 196px);
   min-height: 0;
 }
 
@@ -724,19 +724,68 @@ label {
 }
 
 .user-stage .map-frame iframe {
-  height: calc(100vh - 72px);
+  height: calc(100vh - 196px);
   min-height: 0;
 }
 
-.floating-booking {
-  position: fixed;
-  top: 92px;
-  right: 18px;
+.top-booking {
+  position: sticky;
+  top: 72px;
   z-index: 10;
-  width: min(340px, calc(100vw - 36px));
-  max-height: calc(100vh - 112px);
-  overflow: auto;
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.22);
+  display: grid;
+  grid-template-columns: 120px 92px minmax(260px, 1fr) 160px 128px minmax(150px, 180px);
+  align-items: end;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+}
+
+.top-booking h2 {
+  margin-bottom: 0;
+}
+
+.top-booking .section-label {
+  grid-column: 1;
+}
+
+.top-booking .details {
+  grid-column: 3;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(92px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.top-booking .details div {
+  display: grid;
+  gap: 2px;
+  padding: 0;
+  border-bottom: 0;
+}
+
+.top-booking dd {
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-booking label {
+  margin-top: 0;
+}
+
+.top-booking .message {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.top-booking .primary,
+.top-booking .secondary {
+  min-height: 42px;
+  margin-top: 0;
 }
 
 .floating-levels,
@@ -759,8 +808,8 @@ label {
 
 .floating-maps {
   left: 18px;
-  top: 92px;
-  max-width: min(560px, calc(100vw - 390px));
+  top: 216px;
+  max-width: min(560px, calc(100vw - 36px));
   overflow-x: auto;
 }
 
@@ -828,7 +877,7 @@ label {
     min-height: calc(100vh - 72px);
   }
 
-  .floating-booking,
+  .top-booking,
   .floating-levels,
   .floating-maps {
     position: static;
@@ -840,5 +889,19 @@ label {
 
   .floating-maps {
     overflow-x: auto;
+  }
+
+  .top-booking {
+    grid-template-columns: 1fr;
+  }
+
+  .top-booking .details {
+    grid-column: auto;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .user-stage,
+  .user-stage .map-frame iframe {
+    height: min(70vh, 720px);
   }
 }

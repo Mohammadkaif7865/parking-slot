@@ -20,11 +20,12 @@ export default function Home() {
   const toastTimerRef = useRef(null);
 
   useEffect(() => {
-    const session = JSON.parse(localStorage.getItem("parking-auth") || "{}");
-    if (session.role !== "user" || !session.mobile) {
+    const session = getUserSession();
+    if (!session) {
       window.location.href = "/login";
       return;
     }
+    localStorage.setItem("parking-auth", JSON.stringify(session));
     setAuth(session);
     loadLocations();
   }, []);
@@ -344,7 +345,7 @@ export default function Home() {
           <div className="empty-map">No map uploaded for this level.</div>
         )}
 
-        <aside className="booking-panel floating-booking">
+        <aside className="booking-panel top-booking">
           <p className="section-label">Selected Slot</p>
           <h2>{selectedSlot ? selectedSlot.slotNo : "Click a slot"}</h2>
           <dl className="details">
@@ -392,6 +393,19 @@ function isPdfMap(file) {
   return String(file || "").toLowerCase().endsWith(".pdf");
 }
 
+function getUserSession() {
+  try {
+    const session = JSON.parse(localStorage.getItem("parking-auth") || "{}");
+    const mobile = String(session.mobile || session.phone || session.name || "").replace(/\D/g, "");
+    if (session.role === "user" && /^[0-9]{10}$/.test(mobile)) {
+      return { role: "user", mobile };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 function getBookingForLevel(slot, level) {
   const normalizedLevel = slot.levels?.length > 1 ? level : "Single";
   return slot.bookings?.find((booking) => (booking.level || "Single") === normalizedLevel);
@@ -403,4 +417,3 @@ function formatDateTime(value) {
     timeStyle: "short"
   }).format(new Date(value));
 }
-
