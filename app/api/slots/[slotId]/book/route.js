@@ -5,9 +5,17 @@ import { getSlotLevels, normalizeLevel } from "../../../../../lib/parking-levels
 
 export async function POST(request, { params }) {
   const body = await request.json();
-  const allottee = String(body.allottee || "Demo User").trim();
+  const allottee = String(body.allottee || "").trim();
   const mobile = String(body.mobile || "").trim();
   const requestedLevel = String(body.level || "").trim();
+
+  if (!allottee) {
+    return NextResponse.json({ error: "Name is required." }, { status: 400 });
+  }
+
+  if (!mobile) {
+    return NextResponse.json({ error: "Login mobile number is required." }, { status: 400 });
+  }
 
   if (mobile && !/^[0-9]{10}$/.test(mobile)) {
     return NextResponse.json({ error: "Mobile number should be 10 digits." }, { status: 400 });
@@ -22,6 +30,15 @@ export async function POST(request, { params }) {
 
       if (!slot) {
         throw new Error("Slot not found.");
+      }
+
+      const existingUserBooking = await tx.booking.findFirst({
+        where: { mobile, status: "active" },
+        include: { slot: true }
+      });
+
+      if (existingUserBooking) {
+        throw new Error(`You already have an active booking for ${existingUserBooking.slot.slotNo}.`);
       }
 
       if (slot.status === "reserved" || slot.status === "maintenance") {

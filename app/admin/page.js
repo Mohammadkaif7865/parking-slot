@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [form, setForm] = useState(emptySlot);
   const [mapName, setMapName] = useState("");
+  const [mapLevel, setMapLevel] = useState(1);
   const [mapFile, setMapFile] = useState(null);
   const [message, setMessage] = useState("Manage maps and slot overlays.");
   const [pendingAction, setPendingAction] = useState("");
@@ -35,7 +36,7 @@ export default function AdminPage() {
   useEffect(() => {
     const auth = JSON.parse(localStorage.getItem("parking-auth") || "{}");
     if (auth.role !== "admin") {
-      window.location.href = "/login";
+      window.location.href = "/admin/login";
       return;
     }
     setAuthorized(true);
@@ -135,7 +136,7 @@ export default function AdminPage() {
     const nextSlot = {
       ...emptySlot,
       slotNo: getNextSlotNumber(activeMap),
-      zone: activeMap.name || "",
+      zone: `Level ${activeMap.parkingLevel || 1}`,
       x: 12,
       y: 12
     };
@@ -288,6 +289,7 @@ export default function AdminPage() {
       const data = new FormData();
       data.append("locationId", locationId);
       data.append("name", mapName || mapFile.name);
+      data.append("parkingLevel", String(mapLevel));
       data.append("file", mapFile);
 
       const response = await fetch("/api/maps", { method: "POST", body: data });
@@ -300,6 +302,7 @@ export default function AdminPage() {
       }
 
       setMapName("");
+      setMapLevel(1);
       setMapFile(null);
       setMessage("Map imported. Add slots from the editor.");
       showToast("success", "Map imported.");
@@ -325,7 +328,7 @@ export default function AdminPage() {
         </div>
         <nav className="top-actions">
           <a href="/">User View</a>
-          <a href="/login">Switch Login</a>
+          <a href="/admin/login">Admin Login</a>
         </nav>
         <div className="stats">
           <span><strong>{stats.total}</strong> Slots</span>
@@ -350,7 +353,7 @@ export default function AdminPage() {
             <div className="map-list">
               {activeLocation?.maps.map((map) => (
                 <button className={`map-item ${map.id === activeMap?.id ? "active" : ""}`} key={map.id} onClick={() => selectMap(map.id)}>
-                  <span>{map.name}</span>
+                  <span>Level {map.parkingLevel || 1} - {map.name}</span>
                   <small>{displayMapSource(map.file)}</small>
                 </button>
               ))}
@@ -360,6 +363,11 @@ export default function AdminPage() {
           <form className="import-box" onSubmit={importMap}>
             <p className="section-label">Import Map</p>
             <input value={mapName} onChange={(event) => setMapName(event.target.value)} placeholder="Map name" />
+            <select value={mapLevel} onChange={(event) => setMapLevel(Number(event.target.value))}>
+              {[1, 2, 3, 4, 5].map((level) => (
+                <option key={level} value={level}>Level {level}</option>
+              ))}
+            </select>
             <input type="file" accept=".pdf,.png,.jpg,.jpeg,.svg" onChange={(event) => setMapFile(event.target.files?.[0] || null)} />
             <button className="secondary" disabled={Boolean(pendingAction)}>
               {pendingAction === "importMap" ? "Importing..." : "Import Map"}
@@ -378,7 +386,7 @@ export default function AdminPage() {
           <div className="map-toolbar">
             <div>
               <p className="eyebrow">{activeLocation?.name || "Location"}</p>
-              <h2>{activeMap?.name || "No map selected"}</h2>
+              <h2>{activeMap ? `Level ${activeMap.parkingLevel || 1} - ${activeMap.name}` : "No map selected"}</h2>
             </div>
             <p className="message compact">Select a slot, edit coordinates, then save. Coordinates are percentages over the map.</p>
           </div>
@@ -481,7 +489,7 @@ export default function AdminPage() {
                   <div className="level-booking" key={level}>
                     <strong>{level}</strong>
                     <span>{booking ? booking.allottee || "Booked" : "Empty"}</span>
-                    <small>{booking?.mobile || ""}</small>
+                    <small>{booking ? `${booking.mobile || ""}${booking.createdAt ? ` - ${formatDateTime(booking.createdAt)}` : ""}` : ""}</small>
                   </div>
                 );
               })}
@@ -543,14 +551,16 @@ function displayMapSource(file) {
 }
 
 function getNextSlotNumber(map) {
+  const parkingLevel = map?.parkingLevel || 1;
+  const prefix = `L${parkingLevel}P`;
   const count = (map?.slots?.length || 0) + 1;
-  let candidate = `S-${String(count).padStart(3, "0")}`;
+  let candidate = `${prefix}${String(count).padStart(3, "0")}`;
   const existing = new Set((map?.slots || []).map((slot) => slot.slotNo));
   let next = count;
 
   while (existing.has(candidate)) {
     next += 1;
-    candidate = `S-${String(next).padStart(3, "0")}`;
+    candidate = `${prefix}${String(next).padStart(3, "0")}`;
   }
 
   return candidate;
@@ -559,4 +569,11 @@ function getNextSlotNumber(map) {
 function getBookingForLevel(slot, level) {
   const normalizedLevel = (slot.levels?.length || 0) > 1 ? level : "Single";
   return slot.bookings?.find((booking) => (booking.level || "Single") === normalizedLevel);
+}
+
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
 }

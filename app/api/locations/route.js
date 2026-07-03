@@ -9,7 +9,7 @@ export async function GET() {
     orderBy: { createdAt: "asc" },
     include: {
       maps: {
-        orderBy: { createdAt: "asc" },
+        orderBy: [{ parkingLevel: "asc" }, { createdAt: "asc" }],
         include: {
           slots: {
             orderBy: { slotNo: "asc" },
@@ -31,10 +31,11 @@ export async function GET() {
       name: location.name,
       city: location.city,
       maps: location.maps.map((map) => ({
-        id: map.id,
-        name: map.name,
-        file: map.filePath,
-        slots: map.slots.map((slot) => {
+          id: map.id,
+          name: map.name,
+          parkingLevel: map.parkingLevel || 1,
+          file: map.filePath,
+          slots: map.slots.map((slot) => {
           const activeBooking = slot.bookings[0];
           const occupancy = getLevelOccupancy(slot.type, slot.bookings);
           return {
@@ -51,18 +52,20 @@ export async function GET() {
             levels: occupancy.levels,
             bookedLevels: occupancy.bookedLevels,
             availableLevels: occupancy.availableLevels,
-            bookings: slot.bookings.map((booking) => ({
-              id: booking.id,
-              level: booking.level || "",
-              allottee: booking.allottee || "",
-              mobile: booking.mobile || ""
-            })),
-            level: activeBooking?.level || "",
-            allottee: activeBooking?.allottee || "",
-            mobile: activeBooking?.mobile || ""
-          };
-        })
-      }))
+              bookings: slot.bookings.map((booking) => ({
+                id: booking.id,
+                level: booking.level || "",
+                allottee: booking.allottee || "",
+                mobile: booking.mobile || "",
+                createdAt: booking.createdAt
+              })),
+              level: activeBooking?.level || "",
+              allottee: activeBooking?.allottee || "",
+              mobile: activeBooking?.mobile || "",
+              bookedAt: activeBooking?.createdAt || null
+            };
+          })
+        }))
     }))
   });
 }

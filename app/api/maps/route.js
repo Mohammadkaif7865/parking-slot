@@ -15,6 +15,7 @@ export async function POST(request) {
   const formData = await request.formData();
   const locationId = String(formData.get("locationId") || "");
   const name = String(formData.get("name") || "Imported Map");
+  const parkingLevel = clampParkingLevel(formData.get("parkingLevel"));
   const file = formData.get("file");
 
   if (!locationId || !file || typeof file === "string") {
@@ -50,6 +51,7 @@ export async function POST(request) {
     data: {
       locationId,
       name,
+      parkingLevel,
       filePath,
       sourceType
     }
@@ -57,6 +59,12 @@ export async function POST(request) {
 
   await broadcastRealtime("map:changed", { locationId, mapId: map.id, action: "created" });
   return NextResponse.json({ map });
+}
+
+function clampParkingLevel(value) {
+  const parsed = Number(value || 1);
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.max(1, Math.min(5, Math.trunc(parsed)));
 }
 
 function toDataUrl(sourceType, bytes) {

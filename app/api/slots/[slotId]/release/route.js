@@ -5,6 +5,7 @@ import { getSlotLevels, normalizeLevel } from "../../../../../lib/parking-levels
 
 export async function POST(request, { params }) {
   const body = await request.json().catch(() => ({}));
+  const mobile = String(body.mobile || "").trim();
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -22,14 +23,19 @@ export async function POST(request, { params }) {
       const where = levels.length > 1
         ? { slotId: params.slotId, status: "active", level }
         : { slotId: params.slotId, status: "active" };
+      const guardedWhere = mobile ? { ...where, mobile } : where;
 
-      await tx.booking.updateMany({
-        where,
+      const released = await tx.booking.updateMany({
+        where: guardedWhere,
         data: { status: "cancelled" }
       });
 
+      if (mobile && released.count === 0) {
+        throw new Error("You can release only your active booking.");
+      }
+
       const remainingBookings = levels.length > 1
-        ? current.bookings.filter((booking) => normalizeLevel(current.type, booking.level) !== level)
+        ? current.bookings.filter((booking) => normalizeLevel(current.type, booking.level) !== level || (mobile && booking.mobile !== mobile))
         : [];
 
       const slot = await tx.parkingSlot.update({

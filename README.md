@@ -1,12 +1,6 @@
-# Smart Parking Map Booking Demo
+# Smart Parking Map Booking
 
-This is a Next.js demo that renders exported AutoCAD parking maps as responsive PNG images and adds clickable booking overlays on top. Location, map, slot, and booking data is now backed by PostgreSQL through Prisma.
-
-The five exported PNG maps are stored here:
-
-```text
-public/maps/tisha-plaza/
-```
+Next.js parking booking demo with PostgreSQL, uploaded map rendering, admin slot overlays, Socket.IO updates, level-wise parking maps, and OTP-based user login.
 
 ## Run
 
@@ -23,63 +17,48 @@ Open:
 http://127.0.0.1:3000
 ```
 
-## Demo Flow
+## Current Flow
 
-1. Select `Tisha Plaza Parking`.
-2. Select any of the five exported maps.
-3. Click a colored parking overlay.
-4. Enter demo allottee/mobile details.
-5. Book or release the slot.
+1. User logs in at `/login` with mobile OTP.
+2. In demo mode, OTP is shown on the UI.
+3. User selects parking level, then sees only that level's map and slots.
+4. User selects a slot, enters name, and books with the logged-in mobile number.
+5. One mobile number can have only one active booking.
 
-The booking state is saved in PostgreSQL. The current local `.env` contains the Supabase connection string and must not be committed.
+## Admin
 
-## Login
-
-Demo user:
+Admin login is separate:
 
 ```text
-/login -> User
+/admin/login
 ```
 
-Demo admin:
+Default local password is `admin123`. On Render, set:
 
 ```text
-/login -> Admin
-password: admin123
+ADMIN_PASSWORD=your-secure-password
 ```
 
-## Admin Panel
+Admin can upload maps by parking level, add/edit slots, use level-based slot numbering like `L1P001`, and view booking name, phone, and timestamp.
 
-Open:
+## WhatsApp OTP Config
+
+Demo mode:
 
 ```text
-http://127.0.0.1:3000/admin
+WHATSAPP_OTP_MODE=demo
 ```
 
-Admin can:
+Live mode:
 
-- Import future exported map files
-- Select location and map
-- Add parking slots
-- Edit slot number, zone, type, status
-- Edit overlay coordinates as percentages
-- Nudge overlays up/down/left/right
-- Delete slots
+```text
+WHATSAPP_OTP_MODE=live
+CHATBOX_PHONE_NUMBER_ID=your-phone-number-id
+CHATBOX_WABA_API_KEY=your-waba-api-key
+```
 
-Changes are saved in PostgreSQL and broadcast through Socket.IO so other open screens refresh.
+Live mode sends OTP using the Chatbox API endpoint from the supplied docs.
 
-## Production Direction
+## Notes
 
-For the full application, keep this same idea and expand the database/API layer for:
-
-- Locations
-- Maps
-- Slot overlay coordinates
-- Slot status
-- Bookings
-- Admin/user records
-- Overlay editor updates
-
-## GitHub Notes
-
-Do not push confidential client maps unless the client allows it. This repo only allows the first five exported demo PNG/PDF maps under `public/maps/tisha-plaza/`; other uploaded archives, PNG files, PDF files, and DWG source files stay ignored.
+The local `.env` contains database credentials and must not be committed. Uploaded image maps are stored in PostgreSQL as data URLs for this demo so they survive Render redeploys.

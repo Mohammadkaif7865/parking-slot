@@ -401,6 +401,11 @@ input:disabled {
   opacity: 0.55;
 }
 
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .empty-map {
   display: grid;
   min-height: 520px;
@@ -570,6 +575,183 @@ label {
   background: var(--panel);
 }
 
+.auth-card a {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.demo-otp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px dashed var(--primary);
+  border-radius: 8px;
+  background: #edf6f1;
+  color: var(--muted);
+}
+
+.demo-otp strong {
+  color: var(--ink);
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.inline-action {
+  width: auto;
+  min-width: 88px;
+  margin-top: 0;
+  padding: 0 12px;
+}
+
+.level-shell {
+  background: #eef2f0;
+}
+
+.level-selector {
+  display: grid;
+  min-height: calc(100vh - 78px);
+  place-items: center;
+  padding: 24px;
+}
+
+.level-card {
+  width: min(760px, 100%);
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(92px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.level-button {
+  display: grid;
+  min-height: 92px;
+  align-content: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8faf9;
+  color: var(--ink);
+  text-align: center;
+}
+
+.level-button span {
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.level-button small {
+  color: var(--muted);
+}
+
+.user-map-shell {
+  height: 100vh;
+  overflow: hidden;
+  background: #17201d;
+}
+
+.map-topbar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 72px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+}
+
+.map-topbar h1 {
+  font-size: 22px;
+}
+
+.user-map-view {
+  position: relative;
+  height: 100vh;
+  padding-top: 72px;
+}
+
+.user-stage {
+  height: calc(100vh - 72px);
+  min-height: 0;
+}
+
+.user-stage .map-frame {
+  min-width: min(1080px, 100vw);
+}
+
+.user-stage .map-frame iframe {
+  height: calc(100vh - 72px);
+  min-height: 0;
+}
+
+.floating-booking {
+  position: fixed;
+  top: 92px;
+  right: 18px;
+  z-index: 10;
+  width: min(340px, calc(100vw - 36px));
+  max-height: calc(100vh - 112px);
+  overflow: auto;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.22);
+}
+
+.floating-levels,
+.floating-maps {
+  position: fixed;
+  z-index: 11;
+  display: flex;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.floating-levels {
+  left: 18px;
+  bottom: 18px;
+}
+
+.floating-maps {
+  left: 18px;
+  top: 92px;
+  max-width: min(560px, calc(100vw - 390px));
+  overflow-x: auto;
+}
+
+.floating-levels button,
+.floating-maps button {
+  min-height: 34px;
+  min-width: 42px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f8faf9;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.floating-levels button.active,
+.floating-maps button.active {
+  background: var(--primary);
+  color: #fff;
+}
+
 .danger-text {
   color: #b83232;
 }
@@ -596,5 +778,38 @@ label {
   .position-panel {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .level-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .user-map-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .map-topbar {
+    position: sticky;
+  }
+
+  .user-map-view {
+    height: auto;
+    min-height: calc(100vh - 72px);
+  }
+
+  .floating-booking,
+  .floating-levels,
+  .floating-maps {
+    position: static;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    margin: 12px;
+  }
+
+  .floating-maps {
+    overflow-x: auto;
   }
 }
