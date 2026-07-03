@@ -315,6 +315,46 @@ export default function Home() {
           </div>
         )}
 
+        <aside className="booking-panel top-booking">
+          <div className="selected-summary">
+            <p className="section-label">Selected Slot</p>
+            <h2>{selectedSlot ? selectedSlot.slotNo : "Click a slot"}</h2>
+          </div>
+          <dl className="details">
+            <div><dt>Phone</dt><dd>{sessionMobile}</dd></div>
+            <div><dt>Level</dt><dd>{selectedLevel}</dd></div>
+            <div><dt>Map</dt><dd>{activeMap?.name || "-"}</dd></div>
+            <div><dt>Status</dt><dd>{selectedSlot?.occupancyStatus || selectedSlot?.status || "-"}</dd></div>
+            {selectedLevelBooking && <div><dt>Booked By</dt><dd>{selectedLevelBooking.allottee}</dd></div>}
+            {selectedLevelBooking?.createdAt && <div><dt>Booked At</dt><dd>{formatDateTime(selectedLevelBooking.createdAt)}</dd></div>}
+          </dl>
+
+          {selectedSlot?.levels?.length > 1 && (
+            <label>
+              Stack Position
+              <select value={stackLevel} onChange={(event) => setStackLevel(event.target.value)}>
+                {selectedSlot.levels.map((level) => (
+                  <option key={level} value={level}>
+                    {level}{selectedSlot.bookedLevels?.includes(level) ? " (booked)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <label>
+            Name
+            <input value={allottee} onChange={(event) => setAllottee(event.target.value)} placeholder="Your name" />
+          </label>
+          <button className="primary" onClick={bookSlot} disabled={!canBookSelectedSlot}>
+            {pendingAction === "book" ? "Booking..." : "Book Parking"}
+          </button>
+          <button className="secondary" onClick={releaseSlot} disabled={!canReleaseSelectedSlot}>
+            {pendingAction === "release" ? "Releasing..." : "Release My Slot"}
+          </button>
+          <p className="message">{userActiveBooking ? `Active booking ${userActiveBooking.slot.slotNo}.` : message}</p>
+        </aside>
+
         {activeMap ? (
           <div className="map-stage user-stage">
             <div className="map-frame">
@@ -344,45 +384,6 @@ export default function Home() {
         ) : (
           <div className="empty-map">No map uploaded for this level.</div>
         )}
-
-        <aside className="booking-panel top-booking">
-          <p className="section-label">Selected Slot</p>
-          <h2>{selectedSlot ? selectedSlot.slotNo : "Click a slot"}</h2>
-          <dl className="details">
-            <div><dt>Phone</dt><dd>{sessionMobile}</dd></div>
-            <div><dt>Level</dt><dd>{selectedLevel}</dd></div>
-            <div><dt>Map</dt><dd>{activeMap?.name || "-"}</dd></div>
-            <div><dt>Status</dt><dd>{selectedSlot?.occupancyStatus || selectedSlot?.status || "-"}</dd></div>
-            {selectedLevelBooking && <div><dt>Booked By</dt><dd>{selectedLevelBooking.allottee}</dd></div>}
-            {selectedLevelBooking?.createdAt && <div><dt>Booked At</dt><dd>{formatDateTime(selectedLevelBooking.createdAt)}</dd></div>}
-          </dl>
-
-          {selectedSlot?.levels?.length > 1 && (
-            <label>
-              Stack Level
-              <select value={stackLevel} onChange={(event) => setStackLevel(event.target.value)}>
-                {selectedSlot.levels.map((level) => (
-                  <option key={level} value={level}>
-                    {level}{selectedSlot.bookedLevels?.includes(level) ? " (booked)" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <label>
-            Name
-            <input value={allottee} onChange={(event) => setAllottee(event.target.value)} placeholder="Your name" />
-          </label>
-          {userActiveBooking && <p className="message">You already have active booking {userActiveBooking.slot.slotNo}.</p>}
-          <button className="primary" onClick={bookSlot} disabled={!canBookSelectedSlot}>
-            {pendingAction === "book" ? "Booking..." : "Book Parking"}
-          </button>
-          <button className="secondary" onClick={releaseSlot} disabled={!canReleaseSelectedSlot}>
-            {pendingAction === "release" ? "Releasing..." : "Release My Slot"}
-          </button>
-          <p className="message">{message}</p>
-        </aside>
       </section>
       <Toast toast={toast} onClose={() => setToast(null)} />
     </main>

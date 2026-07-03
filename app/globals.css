@@ -715,7 +715,7 @@ label {
 }
 
 .user-stage {
-  height: calc(100vh - 196px);
+  height: calc(100vh - 176px);
   min-height: 0;
 }
 
@@ -724,7 +724,7 @@ label {
 }
 
 .user-stage .map-frame iframe {
-  height: calc(100vh - 196px);
+  height: calc(100vh - 176px);
   min-height: 0;
 }
 
@@ -733,26 +733,34 @@ label {
   top: 72px;
   z-index: 10;
   display: grid;
-  grid-template-columns: 120px 92px minmax(260px, 1fr) 160px 128px minmax(150px, 180px);
-  align-items: end;
+  grid-template-columns: minmax(110px, 150px) minmax(260px, 1fr) minmax(140px, 180px) 128px 150px minmax(130px, 160px);
+  align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px 16px;
+  min-height: 104px;
+  padding: 8px 16px;
   border-width: 0 0 1px;
   border-radius: 0;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
 }
 
+.top-booking .selected-summary {
+  min-width: 0;
+}
+
 .top-booking h2 {
   margin-bottom: 0;
+  overflow: hidden;
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .top-booking .section-label {
-  grid-column: 1;
+  margin-bottom: 3px;
 }
 
 .top-booking .details {
-  grid-column: 3;
   display: grid;
   grid-template-columns: repeat(4, minmax(92px, 1fr));
   gap: 8px;
@@ -775,16 +783,25 @@ label {
 
 .top-booking label {
   margin-top: 0;
+  min-width: 0;
+}
+
+.top-booking input,
+.top-booking select {
+  min-height: 38px;
+  padding: 7px 9px;
 }
 
 .top-booking .message {
-  grid-column: 1 / -1;
   margin-top: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .top-booking .primary,
 .top-booking .secondary {
-  min-height: 42px;
+  min-height: 38px;
   margin-top: 0;
 }
 
@@ -808,7 +825,7 @@ label {
 
 .floating-maps {
   left: 18px;
-  top: 216px;
+  top: 194px;
   max-width: min(560px, calc(100vw - 36px));
   overflow-x: auto;
 }
@@ -896,7 +913,6 @@ label {
   }
 
   .top-booking .details {
-    grid-column: auto;
     grid-template-columns: 1fr 1fr;
   }
 
