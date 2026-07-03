@@ -15,7 +15,7 @@ export async function POST(request) {
   const formData = await request.formData();
   const locationId = String(formData.get("locationId") || "");
   const name = String(formData.get("name") || "Imported Map");
-  const parkingLevel = clampParkingLevel(formData.get("parkingLevel"));
+  const parkingLevels = parseParkingLevels(formData);
   const file = formData.get("file");
 
   if (!locationId || !file || typeof file === "string") {
@@ -47,18 +47,30 @@ export async function POST(request) {
     filePath = `/maps/${locationId}/${fileName}`;
   }
 
-  const map = await prisma.map.create({
-    data: {
-      locationId,
-      name,
-      parkingLevel,
-      filePath,
-      sourceType
-    }
-  });
+  const maps = await prisma.$transaction(
+    parkingLevels.map((parkingLevel) => prisma.map.create({
+      data: {
+        locationId,
+        name,
+        parkingLevel,
+        filePath,
+        sourceType
+      }
+    }))
+  );
 
-  await broadcastRealtime("map:changed", { locationId, mapId: map.id, action: "created" });
-  return NextResponse.json({ map });
+  await broadcastRealtime("map:changed", { locationId, mapIds: maps.map((map) => map.id), action: "created" });
+  return NextResponse.json({ map: maps[0], maps });
+}
+
+function parseParkingLevels(formData) {
+  const rawValues = formData.getAll("parkingLevels");
+  const values = rawValues.length ? rawValues : [formData.get("parkingLevel") || 1];
+  const levels = values
+    .flatMap((value) => String(value || "").split(","))
+    .map((value) => clampParkingLevel(value));
+
+  return Array.from(new Set(levels)).sort((a, b) => a - b);
 }
 
 function clampParkingLevel(value) {

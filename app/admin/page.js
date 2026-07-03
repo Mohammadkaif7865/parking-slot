@@ -26,7 +26,7 @@ export default function AdminPage() {
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [form, setForm] = useState(emptySlot);
   const [mapName, setMapName] = useState("");
-  const [mapLevel, setMapLevel] = useState(1);
+  const [mapLevels, setMapLevels] = useState([1]);
   const [mapFile, setMapFile] = useState(null);
   const [message, setMessage] = useState("Manage maps and slot overlays.");
   const [pendingAction, setPendingAction] = useState("");
@@ -149,6 +149,16 @@ export default function AdminPage() {
 
   function updateForm(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function toggleMapLevel(level) {
+    setMapLevels((current) => {
+      if (current.includes(level)) {
+        const next = current.filter((item) => item !== level);
+        return next.length ? next : current;
+      }
+      return [...current, level].sort((a, b) => a - b);
+    });
   }
 
   function clearSelection() {
@@ -289,7 +299,7 @@ export default function AdminPage() {
       const data = new FormData();
       data.append("locationId", locationId);
       data.append("name", mapName || mapFile.name);
-      data.append("parkingLevel", String(mapLevel));
+      mapLevels.forEach((level) => data.append("parkingLevels", String(level)));
       data.append("file", mapFile);
 
       const response = await fetch("/api/maps", { method: "POST", body: data });
@@ -302,11 +312,12 @@ export default function AdminPage() {
       }
 
       setMapName("");
-      setMapLevel(1);
+      setMapLevels([1]);
       setMapFile(null);
-      setMessage("Map imported. Add slots from the editor.");
-      showToast("success", "Map imported.");
-      await loadLocations(locationId, result.map.id, "");
+      const importedCount = result.maps?.length || 1;
+      setMessage(`${importedCount} level map${importedCount > 1 ? "s" : ""} imported. Add slots from the editor.`);
+      showToast("success", `${importedCount} level map${importedCount > 1 ? "s" : ""} imported.`);
+      await loadLocations(locationId, result.map?.id || result.maps?.[0]?.id || "", "");
     } catch (error) {
       setMessage(`Map import failed: ${error.message}`);
       showToast("error", `Map import failed: ${error.message}`);
@@ -363,11 +374,14 @@ export default function AdminPage() {
           <form className="import-box" onSubmit={importMap}>
             <p className="section-label">Import Map</p>
             <input value={mapName} onChange={(event) => setMapName(event.target.value)} placeholder="Map name" />
-            <select value={mapLevel} onChange={(event) => setMapLevel(Number(event.target.value))}>
+            <div className="level-checkboxes" role="group" aria-label="Parking levels for this map">
               {[1, 2, 3, 4, 5].map((level) => (
-                <option key={level} value={level}>Level {level}</option>
+                <label key={level} className="level-check">
+                  <input type="checkbox" checked={mapLevels.includes(level)} onChange={() => toggleMapLevel(level)} />
+                  <span>Level {level}</span>
+                </label>
               ))}
-            </select>
+            </div>
             <input type="file" accept=".pdf,.png,.jpg,.jpeg,.svg" onChange={(event) => setMapFile(event.target.files?.[0] || null)} />
             <button className="secondary" disabled={Boolean(pendingAction)}>
               {pendingAction === "importMap" ? "Importing..." : "Import Map"}

@@ -10,9 +10,15 @@ export async function DELETE(_request, { params }) {
     return NextResponse.json({ error: "Map not found." }, { status: 404 });
   }
 
+  const sharedMapCount = map.filePath
+    ? await prisma.map.count({ where: { filePath: map.filePath, id: { not: map.id } } })
+    : 0;
+
   await prisma.map.delete({ where: { id: params.mapId } });
 
-  await deletePublicMapFile(map.filePath);
+  if (!sharedMapCount) {
+    await deletePublicMapFile(map.filePath);
+  }
   await broadcastRealtime("map:changed", { locationId: map.locationId, mapId: map.id, action: "deleted" });
 
   return NextResponse.json({ map });

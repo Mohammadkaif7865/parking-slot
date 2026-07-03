@@ -198,6 +198,35 @@ input {
   gap: 10px;
 }
 
+.level-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.level-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  margin-top: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f8faf9;
+  color: var(--ink);
+}
+
+.level-check input {
+  width: 16px;
+  min-height: 16px;
+}
+
+.level-check span {
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .map-card {
   min-width: 0;
   overflow: hidden;
