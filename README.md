@@ -57,6 +57,8 @@ CHATBOX_PHONE_NUMBER_ID=your-phone-number-id
 CHATBOX_WABA_API_KEY=your-waba-api-key
 ```
 
+Production can also use these fallback env names if the provider dashboard labels are different: `WHATSAPP_PHONE_NUMBER_ID`, `PHONE_NUMBER_ID`, `CHATBOX_API_KEY`, `WHATSAPP_API_KEY`, and `WABA_API_KEY`.
+
 Live mode sends OTP using the Chatbox API endpoint from the supplied docs.
 
 ## Notes
