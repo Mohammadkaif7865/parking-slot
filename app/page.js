@@ -120,6 +120,33 @@ export default function Home() {
     return Array.from(levels).sort((a, b) => a - b);
   }, [activeLocation]);
 
+  const levelStats = useMemo(() => {
+    const stats = {};
+    (activeLocation?.maps || []).forEach((map) => {
+      const level = map.parkingLevel || 1;
+      const current = stats[level] || {
+        maps: 0,
+        total: 0,
+        available: 0,
+        booked: 0,
+        partial: 0,
+        unavailable: 0
+      };
+
+      current.maps += 1;
+      (map.slots || []).forEach((slot) => {
+        const status = slot.occupancyStatus || slot.status || "available";
+        current.total += 1;
+        if (status === "available") current.available += 1;
+        else if (status === "booked") current.booked += 1;
+        else if (status === "partial") current.partial += 1;
+        else current.unavailable += 1;
+      });
+      stats[level] = current;
+    });
+    return stats;
+  }, [activeLocation]);
+
   function selectLocation(nextLocationId) {
     const nextLocation = locations.find((location) => location.id === nextLocationId);
     setLocationId(nextLocationId);
@@ -283,7 +310,13 @@ export default function Home() {
               {levelOptions.length ? levelOptions.map((level) => (
                 <button className="level-button" key={level} onClick={() => selectLevel(level)}>
                   <span>Level {level}</span>
-                  <small>{activeLocation?.maps.filter((map) => map.parkingLevel === level).length || 0} map</small>
+                  <small>{levelStats[level]?.maps || 0} map</small>
+                  <dl className="level-stats">
+                    <div><dt>Total</dt><dd>{levelStats[level]?.total || 0}</dd></div>
+                    <div><dt>Empty</dt><dd>{levelStats[level]?.available || 0}</dd></div>
+                    <div><dt>Booked</dt><dd>{levelStats[level]?.booked || 0}</dd></div>
+                    <div><dt>Partial</dt><dd>{levelStats[level]?.partial || 0}</dd></div>
+                  </dl>
                 </button>
               )) : <p className="empty">No level maps uploaded yet.</p>}
             </div>
