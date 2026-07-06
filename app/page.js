@@ -126,21 +126,30 @@ export default function Home() {
       const level = map.parkingLevel || 1;
       const current = stats[level] || {
         maps: 0,
-        total: 0,
-        available: 0,
-        booked: 0,
-        partial: 0,
+        physicalSlots: 0,
+        totalCapacity: 0,
+        availableCapacity: 0,
+        bookedCapacity: 0,
+        partialSlots: 0,
         unavailable: 0
       };
 
       current.maps += 1;
       (map.slots || []).forEach((slot) => {
         const status = slot.occupancyStatus || slot.status || "available";
-        current.total += 1;
-        if (status === "available") current.available += 1;
-        else if (status === "booked") current.booked += 1;
-        else if (status === "partial") current.partial += 1;
-        else current.unavailable += 1;
+        const capacity = Math.max(1, slot.levels?.length || 1);
+        const booked = Math.min(capacity, slot.bookedLevels?.length || 0);
+        current.physicalSlots += 1;
+        current.totalCapacity += capacity;
+        current.bookedCapacity += booked;
+
+        if (status === "reserved" || status === "maintenance") {
+          current.unavailable += capacity;
+        } else {
+          current.availableCapacity += Math.max(0, capacity - booked);
+        }
+
+        if (status === "partial") current.partialSlots += 1;
       });
       stats[level] = current;
     });
@@ -310,12 +319,12 @@ export default function Home() {
               {levelOptions.length ? levelOptions.map((level) => (
                 <button className="level-button" key={level} onClick={() => selectLevel(level)}>
                   <span>Level {level}</span>
-                  <small>{levelStats[level]?.maps || 0} map</small>
+                  <small>{levelStats[level]?.maps || 0} map - {levelStats[level]?.physicalSlots || 0} slots</small>
                   <dl className="level-stats">
-                    <div><dt>Total</dt><dd>{levelStats[level]?.total || 0}</dd></div>
-                    <div><dt>Empty</dt><dd>{levelStats[level]?.available || 0}</dd></div>
-                    <div><dt>Booked</dt><dd>{levelStats[level]?.booked || 0}</dd></div>
-                    <div><dt>Partial</dt><dd>{levelStats[level]?.partial || 0}</dd></div>
+                    <div><dt>Capacity</dt><dd>{levelStats[level]?.totalCapacity || 0}</dd></div>
+                    <div><dt>Empty</dt><dd>{levelStats[level]?.availableCapacity || 0}</dd></div>
+                    <div><dt>Booked</dt><dd>{levelStats[level]?.bookedCapacity || 0}</dd></div>
+                    <div><dt>Partial</dt><dd>{levelStats[level]?.partialSlots || 0}</dd></div>
                   </dl>
                 </button>
               )) : <p className="empty">No level maps uploaded yet.</p>}
