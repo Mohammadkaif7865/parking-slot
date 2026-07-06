@@ -17,6 +17,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState("");
   const [toast, setToast] = useState(null);
+  const [bookingConfirmation, setBookingConfirmation] = useState(null);
   const toastTimerRef = useRef(null);
 
   useEffect(() => {
@@ -209,18 +210,29 @@ export default function Home() {
     }
 
     const bookingLevel = selectedSlot.levels?.length > 1 ? stackLevel : "Single";
-    const confirmed = window.confirm(`Confirm booking for ${selectedSlot.slotNo}${bookingLevel !== "Single" ? ` (${bookingLevel})` : ""}?`);
-    if (!confirmed) return;
+    setBookingConfirmation({
+      slotId: selectedSlot.id,
+      slotNo: selectedSlot.slotNo,
+      bookingLevel,
+      allottee: allottee.trim(),
+      mobile: sessionMobile,
+      location: activeLocation?.name || "",
+      map: activeMap?.name || "",
+      parkingLevel: selectedLevel
+    });
+  }
 
+  async function confirmBooking() {
+    if (!bookingConfirmation) return;
     setPendingAction("book");
     try {
-      const response = await fetch(`/api/slots/${selectedSlot.id}/book`, {
+      const response = await fetch(`/api/slots/${bookingConfirmation.slotId}/book`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          allottee,
-          mobile: sessionMobile,
-          level: bookingLevel
+          allottee: bookingConfirmation.allottee,
+          mobile: bookingConfirmation.mobile,
+          level: bookingConfirmation.bookingLevel
         })
       });
       const data = await response.json();
@@ -230,21 +242,24 @@ export default function Home() {
         showToast("error", error);
         return;
       }
-      const success = selectedSlot.levels?.length > 1 ? `${selectedSlot.slotNo} ${stackLevel} booked.` : `${selectedSlot.slotNo} booked.`;
+      const success = bookingConfirmation.bookingLevel !== "Single"
+        ? `${bookingConfirmation.slotNo} ${bookingConfirmation.bookingLevel} booked.`
+        : `${bookingConfirmation.slotNo} booked.`;
       setMessage(success);
       showToast("success", success);
       downloadBookingReceipt({
         bookingId: data.booking?.id,
-        name: allottee,
-        mobile: sessionMobile,
-        location: activeLocation?.name || "",
-        map: activeMap?.name || "",
-        parkingLevel: selectedLevel,
-        slotNo: selectedSlot.slotNo,
-        stackLevel: bookingLevel,
+        name: bookingConfirmation.allottee,
+        mobile: bookingConfirmation.mobile,
+        location: bookingConfirmation.location,
+        map: bookingConfirmation.map,
+        parkingLevel: bookingConfirmation.parkingLevel,
+        slotNo: bookingConfirmation.slotNo,
+        stackLevel: bookingConfirmation.bookingLevel,
         bookedAt: data.booking?.createdAt || new Date().toISOString()
       });
-      await loadLocations(locationId, mapId, selectedSlot.id);
+      setBookingConfirmation(null);
+      await loadLocations(locationId, mapId, bookingConfirmation.slotId);
     } catch (error) {
       setMessage(`Booking failed: ${error.message}`);
       showToast("error", `Booking failed: ${error.message}`);
@@ -443,7 +458,40 @@ export default function Home() {
         )}
       </section>
       <Toast toast={toast} onClose={() => setToast(null)} />
+      {bookingConfirmation && (
+        <BookingConfirmModal
+          booking={bookingConfirmation}
+          pending={pendingAction === "book"}
+          onCancel={() => setBookingConfirmation(null)}
+          onConfirm={confirmBooking}
+        />
+      )}
     </main>
+  );
+}
+
+function BookingConfirmModal({ booking, pending, onCancel, onConfirm }) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={pending ? undefined : onCancel}>
+      <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="booking-confirm-title" onClick={(event) => event.stopPropagation()}>
+        <p className="section-label">Confirm Booking</p>
+        <h2 id="booking-confirm-title">{booking.slotNo}</h2>
+        <dl className="confirm-details">
+          <div><dt>Name</dt><dd>{booking.allottee}</dd></div>
+          <div><dt>Phone</dt><dd>{booking.mobile}</dd></div>
+          <div><dt>Level</dt><dd>{booking.parkingLevel}</dd></div>
+          <div><dt>Map</dt><dd>{booking.map || "-"}</dd></div>
+          <div><dt>Stack Position</dt><dd>{booking.bookingLevel}</dd></div>
+        </dl>
+        <p className="message">Please confirm before we reserve this parking slot.</p>
+        <div className="modal-actions">
+          <button className="ghost" type="button" onClick={onCancel} disabled={pending}>Cancel</button>
+          <button className="primary" type="button" onClick={onConfirm} disabled={pending}>
+            {pending ? "Booking..." : "Confirm Booking"}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 

@@ -595,6 +595,62 @@ label {
   line-height: 1;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(21, 32, 28, 0.48);
+  backdrop-filter: blur(4px);
+}
+
+.confirm-modal {
+  width: min(460px, 100%);
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.26);
+}
+
+.confirm-modal h2 {
+  margin-bottom: 12px;
+  font-size: 26px;
+}
+
+.confirm-details {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.confirm-details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.confirm-details dd {
+  max-width: 60%;
+  overflow-wrap: anywhere;
+}
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.modal-actions .primary,
+.modal-actions .ghost {
+  margin-top: 0;
+}
+
 .auth-page {
   display: grid;
   min-height: 100vh;
