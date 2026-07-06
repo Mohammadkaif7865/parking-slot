@@ -427,13 +427,13 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="map-stage">
-                <div className="map-frame">
+                <div className="map-frame" onClick={clearSelection}>
                   {isPdfMap(activeMap.file) ? (
                     <iframe title={activeMap.name} src={`${activeMap.file}#toolbar=0&navpanes=0&view=FitH`} />
                   ) : (
                     <img className="map-image" src={activeMap.file} alt={activeMap.name} />
                   )}
-                  <div className="slot-layer" onClick={clearSelection}>
+                  <div className="slot-layer">
                     {activeMap.slots.map((slot) => {
                       const display = slot.id === selectedSlotId ? form : slotToForm(slot);
                       return (

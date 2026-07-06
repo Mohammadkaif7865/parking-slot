@@ -172,6 +172,10 @@ export default function Home() {
       return;
     }
 
+    const bookingLevel = selectedSlot.levels?.length > 1 ? stackLevel : "Single";
+    const confirmed = window.confirm(`Confirm booking for ${selectedSlot.slotNo}${bookingLevel !== "Single" ? ` (${bookingLevel})` : ""}?`);
+    if (!confirmed) return;
+
     setPendingAction("book");
     try {
       const response = await fetch(`/api/slots/${selectedSlot.id}/book`, {
@@ -180,7 +184,7 @@ export default function Home() {
         body: JSON.stringify({
           allottee,
           mobile: sessionMobile,
-          level: selectedSlot.levels?.length > 1 ? stackLevel : "Single"
+          level: bookingLevel
         })
       });
       const data = await response.json();
@@ -193,6 +197,17 @@ export default function Home() {
       const success = selectedSlot.levels?.length > 1 ? `${selectedSlot.slotNo} ${stackLevel} booked.` : `${selectedSlot.slotNo} booked.`;
       setMessage(success);
       showToast("success", success);
+      downloadBookingReceipt({
+        bookingId: data.booking?.id,
+        name: allottee,
+        mobile: sessionMobile,
+        location: activeLocation?.name || "",
+        map: activeMap?.name || "",
+        parkingLevel: selectedLevel,
+        slotNo: selectedSlot.slotNo,
+        stackLevel: bookingLevel,
+        bookedAt: data.booking?.createdAt || new Date().toISOString()
+      });
       await loadLocations(locationId, mapId, selectedSlot.id);
     } catch (error) {
       setMessage(`Booking failed: ${error.message}`);
@@ -357,13 +372,13 @@ export default function Home() {
 
         {activeMap ? (
           <div className="map-stage user-stage">
-            <div className="map-frame">
+            <div className="map-frame" onClick={clearSelection}>
               {isPdfMap(activeMap.file) ? (
                 <iframe title={activeMap.name} src={`${activeMap.file}#toolbar=0&navpanes=0&view=FitH`} />
               ) : (
                 <img className="map-image" src={activeMap.file} alt={activeMap.name} />
               )}
-              <div className="slot-layer" aria-label="Clickable parking slots" onClick={clearSelection}>
+              <div className="slot-layer" aria-label="Clickable parking slots">
                 {activeMap.slots.map((slot) => (
                   <button
                     key={slot.id}
@@ -417,4 +432,54 @@ function formatDateTime(value) {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
+}
+
+function downloadBookingReceipt(receipt) {
+  const lines = [
+    "Parking Booking Receipt",
+    "",
+    `Receipt No: ${receipt.bookingId || "PENDING"}`,
+    `Name: ${receipt.name}`,
+    `Phone: ${receipt.mobile}`,
+    `Location: ${receipt.location}`,
+    `Map: ${receipt.map}`,
+    `Parking Level: ${receipt.parkingLevel}`,
+    `Slot: ${receipt.slotNo}`,
+    `Stack Position: ${receipt.stackLevel}`,
+    `Booked At: ${formatDateTime(receipt.bookedAt)}`
+  ];
+  const content = lines.map((line, index) => `BT /F1 ${index === 0 ? 18 : 12} Tf 72 ${760 - index * 26} Td (${escapePdfText(line)}) Tj ET`).join("\n");
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(pdf.length);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+  const blob = new Blob([pdf], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `parking-receipt-${receipt.slotNo}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function escapePdfText(value) {
+  return String(value || "").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }

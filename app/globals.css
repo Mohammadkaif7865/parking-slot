@@ -6,6 +6,7 @@
   --line: #d9e2dd;
   --primary: #1f7358;
   --available: #34a866;
+  --partial: #d9a02f;
   --booked: #d94843;
   --reserved: #858f8a;
   --selected: #f0c94d;
@@ -269,6 +270,10 @@ input {
   background: var(--booked);
 }
 
+.legend .partial {
+  background: var(--partial);
+}
+
 .legend .reserved {
   background: var(--reserved);
 }
@@ -335,7 +340,8 @@ input {
 }
 
 .slot.partial {
-  background: color-mix(in srgb, #d9a02f 82%, transparent);
+  background: color-mix(in srgb, var(--partial) 84%, transparent);
+  color: #1f241f;
 }
 
 .slot.reserved {
