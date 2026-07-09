@@ -398,7 +398,8 @@ export default function AdminPage() {
             <div className="map-list">
               {activeLocation?.maps.map((map) => (
                 <button className={`map-item ${map.id === activeMap?.id ? "active" : ""}`} key={map.id} onClick={() => selectMap(map.id)}>
-                  <span>Level {map.parkingLevel || 1} - {map.name}</span>
+                  <span>Level {map.parkingLevel || 1}</span>
+                  <em>{map.name}</em>
                   <small>{displayMapSource(map.file)}</small>
                 </button>
               ))}
@@ -412,7 +413,7 @@ export default function AdminPage() {
               {[1, 2, 3, 4, 5].map((level) => (
                 <label key={level} className="level-check">
                   <input type="checkbox" checked={mapLevels.includes(level)} onChange={() => toggleMapLevel(level)} />
-                  <span>Level {level}</span>
+                  <span>L{level}</span>
                 </label>
               ))}
             </div>
