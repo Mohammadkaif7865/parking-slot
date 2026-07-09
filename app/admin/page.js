@@ -250,6 +250,40 @@ export default function AdminPage() {
     }
   }
 
+  async function releaseBooking(level) {
+    if (!selectedSlot) {
+      setMessage("Select a booked slot first.");
+      showToast("error", "Select a booked slot first.");
+      return;
+    }
+
+    setPendingAction(`release-${level}`);
+    try {
+      const response = await fetch(`/api/slots/${selectedSlot.id}/release`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ level, admin: true })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        const error = data.error || "Could not release booking.";
+        setMessage(error);
+        showToast("error", error);
+        return;
+      }
+
+      const releasedSlotNo = getTierSlotNo(selectedSlot, level);
+      setMessage(`${releasedSlotNo} released.`);
+      showToast("success", `${releasedSlotNo} released.`);
+      await loadLocations(locationId, mapId, selectedSlot.id);
+    } catch (error) {
+      setMessage(`Could not release booking: ${error.message}`);
+      showToast("error", `Could not release booking: ${error.message}`);
+    } finally {
+      setPendingAction("");
+    }
+  }
+
   async function deleteMap() {
     if (!activeMap) {
       setMessage("Select a map first.");
@@ -437,18 +471,18 @@ export default function AdminPage() {
                     {activeMap.slots.map((slot) => {
                       const display = slot.id === selectedSlotId ? form : slotToForm(slot);
                       return (
-                        <button
+                        <SlotMarker
                           key={slot.id}
-                          className={`slot ${slot.id === selectedSlotId ? display.status : slot.occupancyStatus || display.status} ${slot.id === selectedSlotId ? "is-selected" : ""}`}
+                          display={display}
+                          occupancyStatus={slot.id === selectedSlotId ? display.status : slot.occupancyStatus || display.status}
+                          selected={slot.id === selectedSlotId}
                           style={{ left: `${display.x}%`, top: `${display.y}%`, width: `${display.w}%`, height: `${display.h}%` }}
                           onClick={(event) => {
                             event.stopPropagation();
                             selectSlot(slot);
                           }}
-                          type="button"
-                        >
-                          {display.slotNo}
-                        </button>
+                          slot={slot}
+                        />
                       );
                     })}
                     {isDraftSlot && (
@@ -501,9 +535,14 @@ export default function AdminPage() {
                 const booking = getBookingForLevel(selectedSlot, level);
                 return (
                   <div className="level-booking" key={level}>
-                    <strong>{level}</strong>
+                    <strong>{getTierSlotNo(selectedSlot, level)}</strong>
                     <span>{booking ? booking.allottee || "Booked" : "Empty"}</span>
                     <small>{booking ? `${booking.mobile || ""}${booking.createdAt ? ` - ${formatDateTime(booking.createdAt)}` : ""}` : ""}</small>
+                    {booking && (
+                      <button className="ghost compact-action danger-text" type="button" disabled={Boolean(pendingAction)} onClick={() => releaseBooking(level)}>
+                        {pendingAction === `release-${level}` ? "Releasing..." : "Release"}
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -539,6 +578,38 @@ function slotToForm(slot) {
   };
 }
 
+function SlotMarker({ display, occupancyStatus, onClick, selected, slot, style }) {
+  const previewSlot = {
+    ...slot,
+    slotNo: display.slotNo,
+    type: display.type,
+    levels: getSlotLevelNames(display.type)
+  };
+  const displayNumbers = getSlotDisplayNumbers(previewSlot);
+  const isStack = displayNumbers.length > 1;
+
+  return (
+    <button
+      className={`slot ${occupancyStatus} ${selected ? "is-selected" : ""} ${isStack ? "is-stack" : ""}`}
+      style={style}
+      onClick={onClick}
+      type="button"
+    >
+      {isStack ? (
+        <span className="stack-flags">
+          {displayNumbers.map((item) => (
+            <span className={`stack-flag ${item.booked ? "booked" : "available"}`} key={item.level}>
+              {item.slotNo}
+            </span>
+          ))}
+        </span>
+      ) : (
+        <span className="slot-number">{display.slotNo}</span>
+      )}
+    </button>
+  );
+}
+
 function normalizeForm(form) {
   return {
     slotNo: form.slotNo,
@@ -567,10 +638,14 @@ function displayMapSource(file) {
 function getNextSlotNumber(map) {
   const parkingLevel = map?.parkingLevel || 1;
   const prefix = `L${parkingLevel}P`;
-  const count = (map?.slots?.length || 0) + 1;
-  let candidate = `${prefix}${String(count).padStart(3, "0")}`;
+  const highestNumber = (map?.slots || []).reduce((highest, slot) => {
+    const parsed = parseSlotNumber(slot.slotNo);
+    if (!parsed) return highest;
+    return Math.max(highest, parsed.number + getSlotCapacity(slot) - 1);
+  }, 0);
+  let next = highestNumber + 1;
+  let candidate = `${prefix}${String(next).padStart(3, "0")}`;
   const existing = new Set((map?.slots || []).map((slot) => slot.slotNo));
-  let next = count;
 
   while (existing.has(candidate)) {
     next += 1;
@@ -578,6 +653,42 @@ function getNextSlotNumber(map) {
   }
 
   return candidate;
+}
+
+function getSlotDisplayNumbers(slot) {
+  const levels = slot?.levels?.length ? slot.levels : getSlotLevelNames(slot?.type);
+  const base = parseSlotNumber(slot?.slotNo);
+
+  return levels.map((level, index) => ({
+    level,
+    slotNo: base ? `${base.prefix}${String(base.number + index).padStart(base.width, "0")}` : slot?.slotNo || "",
+    booked: slot?.bookedLevels?.includes(level)
+  }));
+}
+
+function getTierSlotNo(slot, level) {
+  const item = getSlotDisplayNumbers(slot).find((entry) => entry.level === level);
+  return item?.slotNo || slot?.slotNo || "";
+}
+
+function getSlotCapacity(slot) {
+  return getSlotLevelNames(slot?.type).length;
+}
+
+function getSlotLevelNames(type = "") {
+  if (String(type).includes("3")) return ["Top", "Middle", "Bottom"];
+  if (String(type).includes("2")) return ["Top", "Bottom"];
+  return ["Single"];
+}
+
+function parseSlotNumber(slotNo) {
+  const match = String(slotNo || "").match(/^(.*?)(\d+)$/);
+  if (!match) return null;
+  return {
+    prefix: match[1],
+    number: Number(match[2]),
+    width: match[2].length
+  };
 }
 
 function getBookingForLevel(slot, level) {

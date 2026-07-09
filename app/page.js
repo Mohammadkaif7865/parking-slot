@@ -98,7 +98,6 @@ export default function Home() {
   }, [locations, sessionMobile]);
 
   const canBookSelectedSlot = selectedSlot && !pendingAction && !userActiveBooking && (isStackSlot ? !selectedLevelBooked : selectedSlot.occupancyStatus !== "booked");
-  const canReleaseSelectedSlot = selectedSlot && !pendingAction && Boolean(selectedLevelBooking?.mobile === sessionMobile);
 
   useEffect(() => {
     if (!selectedSlot) {
@@ -212,7 +211,8 @@ export default function Home() {
     const bookingLevel = selectedSlot.levels?.length > 1 ? stackLevel : "Single";
     setBookingConfirmation({
       slotId: selectedSlot.id,
-      slotNo: selectedSlot.slotNo,
+      slotNo: getTierSlotNo(selectedSlot, bookingLevel),
+      physicalSlotNo: selectedSlot.slotNo,
       bookingLevel,
       allottee: allottee.trim(),
       mobile: sessionMobile,
@@ -263,36 +263,6 @@ export default function Home() {
     } catch (error) {
       setMessage(`Booking failed: ${error.message}`);
       showToast("error", `Booking failed: ${error.message}`);
-    } finally {
-      setPendingAction("");
-    }
-  }
-
-  async function releaseSlot() {
-    if (!selectedSlot || !canReleaseSelectedSlot) {
-      showToast("error", "You can release only your active booking.");
-      return;
-    }
-    setPendingAction("release");
-    try {
-      const response = await fetch(`/api/slots/${selectedSlot.id}/release`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level: selectedSlot.levels?.length > 1 ? stackLevel : "Single", mobile: sessionMobile })
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        const error = data.error || "Release failed.";
-        setMessage(error);
-        showToast("error", error);
-        return;
-      }
-      setMessage(`${selectedSlot.slotNo} released.`);
-      showToast("success", `${selectedSlot.slotNo} released.`);
-      await loadLocations(locationId, mapId, selectedSlot.id);
-    } catch (error) {
-      setMessage(`Release failed: ${error.message}`);
-      showToast("error", `Release failed: ${error.message}`);
     } finally {
       setPendingAction("");
     }
@@ -387,46 +357,6 @@ export default function Home() {
           </div>
         )}
 
-        <aside className="booking-panel top-booking">
-          <div className="selected-summary">
-            <p className="section-label">Selected Slot</p>
-            <h2>{selectedSlot ? selectedSlot.slotNo : "Click a slot"}</h2>
-          </div>
-          <dl className="details">
-            <div><dt>Phone</dt><dd>{sessionMobile}</dd></div>
-            <div><dt>Level</dt><dd>{selectedLevel}</dd></div>
-            <div><dt>Map</dt><dd>{activeMap?.name || "-"}</dd></div>
-            <div><dt>Status</dt><dd>{selectedSlot?.occupancyStatus || selectedSlot?.status || "-"}</dd></div>
-            {selectedLevelBooking && <div><dt>Booked By</dt><dd>{selectedLevelBooking.allottee}</dd></div>}
-            {selectedLevelBooking?.createdAt && <div><dt>Booked At</dt><dd>{formatDateTime(selectedLevelBooking.createdAt)}</dd></div>}
-          </dl>
-
-          {selectedSlot?.levels?.length > 1 && (
-            <label>
-              Stack Position
-              <select value={stackLevel} onChange={(event) => setStackLevel(event.target.value)}>
-                {selectedSlot.levels.map((level) => (
-                  <option key={level} value={level}>
-                    {level}{selectedSlot.bookedLevels?.includes(level) ? " (booked)" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <label>
-            Name
-            <input value={allottee} onChange={(event) => setAllottee(event.target.value)} placeholder="Your name" />
-          </label>
-          <button className="primary" onClick={bookSlot} disabled={!canBookSelectedSlot}>
-            {pendingAction === "book" ? "Booking..." : "Book Parking"}
-          </button>
-          <button className="secondary" onClick={releaseSlot} disabled={!canReleaseSelectedSlot}>
-            {pendingAction === "release" ? "Releasing..." : "Release My Slot"}
-          </button>
-          <p className="message">{userActiveBooking ? `Active booking ${userActiveBooking.slot.slotNo}.` : message}</p>
-        </aside>
-
         {activeMap ? (
           <div className="map-stage user-stage">
             <div className="map-frame" onClick={clearSelection}>
@@ -437,18 +367,15 @@ export default function Home() {
               )}
               <div className="slot-layer" aria-label="Clickable parking slots">
                 {activeMap.slots.map((slot) => (
-                  <button
+                  <SlotMarker
                     key={slot.id}
-                    className={`slot ${slot.occupancyStatus || slot.status} ${selectedSlotId === slot.id ? "is-selected" : ""}`}
-                    style={{ left: `${slot.x}%`, top: `${slot.y}%`, width: `${slot.w}%`, height: `${slot.h}%` }}
-                    onClick={(event) => {
+                    slot={slot}
+                    selected={selectedSlotId === slot.id}
+                    onSelect={(event) => {
                       event.stopPropagation();
                       selectSlot(slot);
                     }}
-                    title={`${slot.slotNo} ${slot.occupancyStatus || slot.status}`}
-                  >
-                    {slot.slotNo}
-                  </button>
+                  />
                 ))}
               </div>
             </div>
@@ -458,6 +385,24 @@ export default function Home() {
         )}
       </section>
       <Toast toast={toast} onClose={() => setToast(null)} />
+      {selectedSlot && (
+        <SlotBookingPopup
+          activeMap={activeMap}
+          allottee={allottee}
+          canBook={canBookSelectedSlot}
+          message={userActiveBooking ? `Active booking ${getTierSlotNo(userActiveBooking.slot, userActiveBooking.booking.level || "Single")}. Admin can release it.` : message}
+          onBook={bookSlot}
+          onClose={clearSelection}
+          onNameChange={setAllottee}
+          onStackLevelChange={setStackLevel}
+          pending={pendingAction === "book"}
+          selectedLevel={selectedLevel}
+          selectedLevelBooking={selectedLevelBooking}
+          sessionMobile={sessionMobile}
+          slot={selectedSlot}
+          stackLevel={stackLevel}
+        />
+      )}
       {bookingConfirmation && (
         <BookingConfirmModal
           booking={bookingConfirmation}
@@ -467,6 +412,102 @@ export default function Home() {
         />
       )}
     </main>
+  );
+}
+
+function SlotMarker({ slot, selected, onSelect }) {
+  const displayNumbers = getSlotDisplayNumbers(slot);
+  const isStack = displayNumbers.length > 1;
+
+  return (
+    <button
+      className={`slot ${slot.occupancyStatus || slot.status} ${selected ? "is-selected" : ""} ${isStack ? "is-stack" : ""}`}
+      style={{ left: `${slot.x}%`, top: `${slot.y}%`, width: `${slot.w}%`, height: `${slot.h}%` }}
+      onClick={onSelect}
+      title={`${slot.slotNo} ${slot.occupancyStatus || slot.status}`}
+      type="button"
+    >
+      {isStack ? (
+        <span className="stack-flags">
+          {displayNumbers.map((item) => (
+            <span className={`stack-flag ${item.booked ? "booked" : "available"}`} key={item.level}>
+              {item.slotNo}
+            </span>
+          ))}
+        </span>
+      ) : (
+        <span className="slot-number">{displayNumbers[0]?.slotNo || slot.slotNo}</span>
+      )}
+    </button>
+  );
+}
+
+function SlotBookingPopup({
+  activeMap,
+  allottee,
+  canBook,
+  message,
+  onBook,
+  onClose,
+  onNameChange,
+  onStackLevelChange,
+  pending,
+  selectedLevel,
+  selectedLevelBooking,
+  sessionMobile,
+  slot,
+  stackLevel
+}) {
+  const displayNumbers = getSlotDisplayNumbers(slot);
+  const isStack = displayNumbers.length > 1;
+
+  return (
+    <div className="slot-popup-backdrop" role="presentation" onClick={onClose}>
+      <section className="slot-popup" role="dialog" aria-modal="true" aria-labelledby="slot-popup-title" onClick={(event) => event.stopPropagation()}>
+        <div className="slot-popup-head">
+          <div>
+            <p className="section-label">Selected Slot</p>
+            <h2 id="slot-popup-title">{getTierSlotNo(slot, stackLevel)}</h2>
+          </div>
+          <button className="icon-close" type="button" onClick={onClose} aria-label="Close">x</button>
+        </div>
+
+        <dl className="details">
+          <div><dt>Phone</dt><dd>{sessionMobile}</dd></div>
+          <div><dt>Level</dt><dd>{selectedLevel}</dd></div>
+          <div><dt>Map</dt><dd>{activeMap?.name || "-"}</dd></div>
+          <div><dt>Status</dt><dd>{slot.occupancyStatus || slot.status || "-"}</dd></div>
+          {selectedLevelBooking && <div><dt>Booked By</dt><dd>{selectedLevelBooking.allottee}</dd></div>}
+          {selectedLevelBooking?.createdAt && <div><dt>Booked At</dt><dd>{formatDateTime(selectedLevelBooking.createdAt)}</dd></div>}
+        </dl>
+
+        {isStack && (
+          <div className="tier-picker" role="group" aria-label="Stack parking tiers">
+            {displayNumbers.map((item) => (
+              <button
+                className={`tier-option ${item.booked ? "booked" : "available"} ${stackLevel === item.level ? "active" : ""}`}
+                key={item.level}
+                onClick={() => onStackLevelChange(item.level)}
+                type="button"
+              >
+                <strong>{item.slotNo}</strong>
+                <span>{item.level}</span>
+                <small>{item.booked ? "Booked" : "Empty"}</small>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <label>
+          Name
+          <input value={allottee} onChange={(event) => onNameChange(event.target.value)} placeholder="Your name" />
+        </label>
+        <button className="primary" onClick={onBook} disabled={!canBook}>
+          {pending ? "Booking..." : "Book Parking"}
+        </button>
+        <p className="message">{message}</p>
+      </section>
+    </div>
   );
 }
 
@@ -510,6 +551,32 @@ function getUserSession() {
     return null;
   }
   return null;
+}
+
+function getSlotDisplayNumbers(slot) {
+  const levels = slot?.levels?.length ? slot.levels : ["Single"];
+  const base = parseSlotNumber(slot?.slotNo);
+
+  return levels.map((level, index) => ({
+    level,
+    slotNo: base ? `${base.prefix}${String(base.number + index).padStart(base.width, "0")}` : slot?.slotNo || "",
+    booked: slot?.bookedLevels?.includes(level)
+  }));
+}
+
+function getTierSlotNo(slot, level) {
+  const item = getSlotDisplayNumbers(slot).find((entry) => entry.level === level);
+  return item?.slotNo || slot?.slotNo || "";
+}
+
+function parseSlotNumber(slotNo) {
+  const match = String(slotNo || "").match(/^(.*?)(\d+)$/);
+  if (!match) return null;
+  return {
+    prefix: match[1],
+    number: Number(match[2]),
+    width: match[2].length
+  };
 }
 
 function getBookingForLevel(slot, level) {
