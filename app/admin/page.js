@@ -57,6 +57,27 @@ export default function AdminPage() {
     return () => socket.disconnect();
   }, [locationId, mapId, selectedSlotId]);
 
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (!canEditPosition || isTypingTarget(event.target)) return;
+
+      const movement = {
+        ArrowUp: [0, -1],
+        ArrowDown: [0, 1],
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0]
+      }[event.key];
+
+      if (!movement) return;
+      event.preventDefault();
+      const step = event.shiftKey ? 5 : 1;
+      nudge(movement[0] * step, movement[1] * step);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canEditPosition]);
+
   async function loadLocations(preferredLocationId = locationId, preferredMapId = mapId, preferredSlotId = selectedSlotId, options = {}) {
     try {
       const response = await fetch("/api/locations", { cache: "no-store" });
@@ -441,27 +462,20 @@ export default function AdminPage() {
           </div>
           {activeMap ? (
             <>
-              <div className="position-panel">
-                <div>
-                  <p className="section-label">Position</p>
-                  <strong>{form.id || isDraftSlot ? form.slotNo || "Selected Slot" : "Select a slot"}</strong>
-                </div>
-
-                <div className="position-grid">
-                  <label>X %<input type="number" value={form.x} disabled={!canEditPosition} onChange={(event) => updateForm("x", event.target.value)} /></label>
-                  <label>Y %<input type="number" value={form.y} disabled={!canEditPosition} onChange={(event) => updateForm("y", event.target.value)} /></label>
-                  <label>W %<input type="number" value={form.w} disabled={!canEditPosition} onChange={(event) => updateForm("w", event.target.value)} /></label>
-                  <label>H %<input type="number" value={form.h} disabled={!canEditPosition} onChange={(event) => updateForm("h", event.target.value)} /></label>
-                </div>
-
-                <div className="nudge-pad">
-                  <button className="ghost" type="button" disabled={!canEditPosition} onClick={() => nudge(0, -1)}>Up</button>
-                  <button className="ghost" type="button" disabled={!canEditPosition} onClick={() => nudge(-1, 0)}>Left</button>
-                  <button className="ghost" type="button" disabled={!canEditPosition} onClick={() => nudge(1, 0)}>Right</button>
-                  <button className="ghost" type="button" disabled={!canEditPosition} onClick={() => nudge(0, 1)}>Down</button>
-                </div>
-              </div>
               <div className="map-stage">
+                <div className="floating-position">
+                  <div>
+                    <p className="section-label">Position</p>
+                    <strong>{form.id || isDraftSlot ? form.slotNo || "Selected Slot" : "Select a slot"}</strong>
+                    <small>Arrow keys move. Shift + arrow moves faster.</small>
+                  </div>
+                  <div className="floating-position-grid">
+                    <label>X<input type="number" value={form.x} disabled={!canEditPosition} onChange={(event) => updateForm("x", event.target.value)} /></label>
+                    <label>Y<input type="number" value={form.y} disabled={!canEditPosition} onChange={(event) => updateForm("y", event.target.value)} /></label>
+                    <label>W<input type="number" value={form.w} disabled={!canEditPosition} onChange={(event) => updateForm("w", event.target.value)} /></label>
+                    <label>H<input type="number" value={form.h} disabled={!canEditPosition} onChange={(event) => updateForm("h", event.target.value)} /></label>
+                  </div>
+                </div>
                 <div className="map-frame" onClick={clearSelection}>
                   {isPdfMap(activeMap.file) ? (
                     <iframe title={activeMap.name} src={`${activeMap.file}#toolbar=0&navpanes=0&view=FitH`} />
@@ -626,6 +640,11 @@ function normalizeForm(form) {
 
 function clamp(value) {
   return Math.max(0, Math.min(100, Number(value)));
+}
+
+function isTypingTarget(target) {
+  const tagName = target?.tagName?.toLowerCase();
+  return tagName === "input" || tagName === "select" || tagName === "textarea" || target?.isContentEditable;
 }
 
 function isPdfMap(file) {

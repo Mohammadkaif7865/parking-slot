@@ -436,21 +436,24 @@ input {
   background: color-mix(in srgb, var(--booked) 88%, #000);
 }
 
-.position-panel {
+.floating-position {
   position: sticky;
-  top: 0;
-  z-index: 4;
+  left: 12px;
+  top: 12px;
+  z-index: 6;
   display: grid;
-  grid-template-columns: minmax(90px, 120px) minmax(220px, 1fr) minmax(190px, 220px);
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
-  background: #f8faf9;
-  overflow: hidden;
+  width: min(430px, calc(100% - 24px));
+  gap: 10px;
+  margin: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 34px rgba(21, 32, 28, 0.16);
+  backdrop-filter: blur(8px);
 }
 
-.position-panel strong {
+.floating-position strong {
   display: block;
   overflow: hidden;
   font-size: 15px;
@@ -458,53 +461,32 @@ input {
   white-space: nowrap;
 }
 
-.position-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
+.floating-position small {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
 }
 
-.position-grid label {
+.floating-position-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.floating-position-grid label {
   gap: 4px;
   margin-top: 0;
   font-size: 11px;
 }
 
-.position-grid input {
+.floating-position-grid input {
   min-height: 34px;
   padding: 6px 7px;
 }
 
-.nudge-pad {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-areas:
-    ". up ."
-    "left . right"
-    ". down .";
-  gap: 7px;
-}
-
-.nudge-pad .ghost,
 .compact-action {
   min-height: 34px;
   margin-top: 0;
-}
-
-.nudge-pad .ghost:nth-child(1) {
-  grid-area: up;
-}
-
-.nudge-pad .ghost:nth-child(2) {
-  grid-area: left;
-}
-
-.nudge-pad .ghost:nth-child(3) {
-  grid-area: right;
-}
-
-.nudge-pad .ghost:nth-child(4) {
-  grid-area: down;
 }
 
 button:disabled,
@@ -1070,11 +1052,6 @@ label {
   .admin-layout .sidebar,
   .admin-layout .booking-panel {
     max-height: none;
-  }
-
-  .position-panel {
-    grid-template-columns: 1fr;
-    align-items: stretch;
   }
 
   .level-grid {
