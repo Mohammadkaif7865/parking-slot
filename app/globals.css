@@ -122,7 +122,9 @@ h2 {
 }
 
 .admin-layout {
-  grid-template-columns: 280px minmax(0, 1fr) 360px;
+  grid-template-columns: 230px minmax(720px, 1fr) 300px;
+  gap: 10px;
+  padding: 10px;
 }
 
 .sidebar,
@@ -290,6 +292,26 @@ input {
   overflow: auto;
 }
 
+.admin-layout .map-stage {
+  height: calc(100vh - 214px);
+  min-height: 680px;
+}
+
+.admin-layout .map-frame {
+  min-width: 980px;
+}
+
+.admin-layout .map-frame iframe {
+  height: calc(100vh - 214px);
+  min-height: 680px;
+}
+
+.admin-layout .sidebar,
+.admin-layout .booking-panel {
+  max-height: calc(100vh - 108px);
+  overflow: auto;
+}
+
 .map-frame {
   position: relative;
   width: 100%;
@@ -407,7 +429,7 @@ input {
   top: 0;
   z-index: 4;
   display: grid;
-  grid-template-columns: minmax(96px, 130px) minmax(220px, 1fr) minmax(210px, 240px);
+  grid-template-columns: minmax(90px, 120px) minmax(220px, 1fr) minmax(190px, 220px);
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
@@ -1017,6 +1039,25 @@ label {
 
   .layout {
     grid-template-columns: 1fr;
+  }
+
+  .admin-layout {
+    padding: 12px;
+  }
+
+  .admin-layout .map-stage,
+  .admin-layout .map-frame iframe {
+    height: min(78vh, 820px);
+    min-height: 560px;
+  }
+
+  .admin-layout .map-frame {
+    min-width: 720px;
+  }
+
+  .admin-layout .sidebar,
+  .admin-layout .booking-panel {
+    max-height: none;
   }
 
   .position-panel {
