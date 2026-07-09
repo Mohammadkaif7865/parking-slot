@@ -57,27 +57,6 @@ export default function AdminPage() {
     return () => socket.disconnect();
   }, [locationId, mapId, selectedSlotId]);
 
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (!canEditPosition || isTypingTarget(event.target)) return;
-
-      const movement = {
-        ArrowUp: [0, -1],
-        ArrowDown: [0, 1],
-        ArrowLeft: [-1, 0],
-        ArrowRight: [1, 0]
-      }[event.key];
-
-      if (!movement) return;
-      event.preventDefault();
-      const step = event.shiftKey ? 5 : 1;
-      nudge(movement[0] * step, movement[1] * step);
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [canEditPosition]);
-
   async function loadLocations(preferredLocationId = locationId, preferredMapId = mapId, preferredSlotId = selectedSlotId, options = {}) {
     try {
       const response = await fetch("/api/locations", { cache: "no-store" });
@@ -117,6 +96,27 @@ export default function AdminPage() {
   const selectedSlotHasBookings = Boolean(selectedSlot?.bookings?.length);
   const isDraftSlot = selectedSlotId === draftSlotId && !form.id && Boolean(form.slotNo);
   const canEditPosition = Boolean(form.id || isDraftSlot);
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (!canEditPosition || isTypingTarget(event.target)) return;
+
+      const movement = {
+        ArrowUp: [0, -1],
+        ArrowDown: [0, 1],
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0]
+      }[event.key];
+
+      if (!movement) return;
+      event.preventDefault();
+      const step = event.shiftKey ? 5 : 1;
+      nudge(movement[0] * step, movement[1] * step);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canEditPosition]);
 
   const stats = useMemo(() => {
     const slots = activeMap?.slots || [];
