@@ -318,12 +318,6 @@ input {
   min-height: 680px;
 }
 
-.admin-layout .sidebar,
-.admin-layout .booking-panel {
-  max-height: calc(100vh - 108px);
-  overflow: auto;
-}
-
 .map-frame {
   position: relative;
   width: 100%;
@@ -1047,11 +1041,6 @@ label {
 
   .admin-layout .map-frame {
     min-width: 720px;
-  }
-
-  .admin-layout .sidebar,
-  .admin-layout .booking-panel {
-    max-height: none;
   }
 
   .level-grid {
