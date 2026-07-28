@@ -2,14 +2,29 @@
 
 import { useState } from "react";
 
+const OTP_LOGIN_DISABLED = true;
+
 export default function UserLoginPage() {
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
   const [demoOtp, setDemoOtp] = useState("");
   const [step, setStep] = useState("mobile");
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState("Login with mobile OTP.");
+  const [message, setMessage] = useState(
+    OTP_LOGIN_DISABLED ? "OTP is temporarily disabled. Enter mobile number to continue." : "Login with mobile OTP."
+  );
 
+  function loginDirectly(event) {
+    event.preventDefault();
+    if (mobile.length !== 10) {
+      setMessage("Enter a valid 10 digit mobile number.");
+      return;
+    }
+    localStorage.setItem("parking-auth", JSON.stringify({ role: "user", mobile }));
+    window.location.href = "/";
+  }
+
+  // WhatsApp OTP flow is kept here for future re-enable.
   async function requestOtp(event) {
     event.preventDefault();
     setPending(true);
@@ -59,14 +74,14 @@ export default function UserLoginPage() {
 
   return (
     <main className="auth-page">
-      <form className="auth-card" onSubmit={step === "mobile" ? requestOtp : verifyOtp}>
+      <form className="auth-card" onSubmit={OTP_LOGIN_DISABLED ? loginDirectly : step === "mobile" ? requestOtp : verifyOtp}>
         <p className="eyebrow">User Login</p>
-        <h1>Parking OTP Login</h1>
+        <h1>{OTP_LOGIN_DISABLED ? "Parking Login" : "Parking OTP Login"}</h1>
         <label>
           Mobile Number
-          <input value={mobile} disabled={step === "otp"} onChange={(event) => setMobile(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="9876543210" />
+          <input value={mobile} disabled={!OTP_LOGIN_DISABLED && step === "otp"} onChange={(event) => setMobile(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="9876543210" />
         </label>
-        {step === "otp" && (
+        {!OTP_LOGIN_DISABLED && step === "otp" && (
           <>
             {demoOtp && (
               <div className="demo-otp">
@@ -80,12 +95,13 @@ export default function UserLoginPage() {
             </label>
           </>
         )}
-        <button className="primary" disabled={pending}>{pending ? "Please wait..." : step === "mobile" ? "Send OTP" : "Verify & Continue"}</button>
-        {step === "otp" && <button className="ghost" type="button" disabled={pending} onClick={() => { setStep("mobile"); setOtp(""); setDemoOtp(""); }}>Change Mobile</button>}
+        <button className="primary" disabled={pending}>
+          {pending ? "Please wait..." : OTP_LOGIN_DISABLED ? "Continue" : step === "mobile" ? "Send OTP" : "Verify & Continue"}
+        </button>
+        {!OTP_LOGIN_DISABLED && step === "otp" && <button className="ghost" type="button" disabled={pending} onClick={() => { setStep("mobile"); setOtp(""); setDemoOtp(""); }}>Change Mobile</button>}
         <p className="message">{message}</p>
         <p className="message"><a href="/admin/login">Admin login</a></p>
       </form>
     </main>
   );
 }
-
