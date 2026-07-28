@@ -63,14 +63,10 @@ export async function POST(request, { params }) {
         throw new Error(`${slot.slotNo} is fully booked.`);
       }
 
-      await tx.appCounter.upsert({
+      const counter = await tx.appCounter.upsert({
         where: { key: "receipt" },
-        update: {},
-        create: { key: "receipt", value: 0 }
-      });
-      const counter = await tx.appCounter.update({
-        where: { key: "receipt" },
-        data: { value: { increment: 1 } }
+        update: { value: { increment: 1 } },
+        create: { key: "receipt", value: 1 }
       });
       const receiptNo = `SP/${String(counter.value).padStart(3, "0")}`;
 
@@ -92,7 +88,7 @@ export async function POST(request, { params }) {
       });
 
       return { slot: updatedSlot, booking };
-    });
+    }, { timeout: 15000, maxWait: 10000 });
 
     await broadcastRealtime("slot:booked", { mapId: result.slot.mapId, slotId: result.slot.id });
     return NextResponse.json(result);
