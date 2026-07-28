@@ -60,7 +60,7 @@ export async function POST(request) {
   );
 
   await broadcastRealtime("map:changed", { locationId, mapIds: maps.map((map) => map.id), action: "created" });
-  return NextResponse.json({ map: maps[0], maps });
+  return NextResponse.json({ map: serializeMap(maps[0]), maps: maps.map(serializeMap) });
 }
 
 function parseParkingLevels(formData) {
@@ -88,4 +88,11 @@ function toDataUrl(sourceType, bytes) {
   };
 
   return `data:${mimeTypes[sourceType]};base64,${bytes.toString("base64")}`;
+}
+
+function serializeMap(map) {
+  return {
+    ...map,
+    filePath: String(map.filePath || "").startsWith("data:") ? `/api/maps/${map.id}/image` : map.filePath
+  };
 }

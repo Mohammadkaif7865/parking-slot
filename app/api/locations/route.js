@@ -35,7 +35,8 @@ export async function GET() {
           id: map.id,
           name: map.name,
           parkingLevel: map.parkingLevel || 1,
-          file: map.filePath,
+          sourceType: map.sourceType,
+          file: getMapFileUrl(map),
           slots: map.slots.map((slot) => {
             const activeBooking = slot.bookings[0];
             const occupancy = getLevelOccupancy(slot.type, slot.bookings);
@@ -76,4 +77,12 @@ export async function GET() {
       { status: 500 }
     );
   }
+}
+
+function getMapFileUrl(map) {
+  if (String(map.filePath || "").startsWith("data:")) {
+    return `/api/maps/${map.id}/image`;
+  }
+
+  return map.filePath;
 }

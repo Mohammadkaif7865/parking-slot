@@ -665,7 +665,8 @@ function isPdfMap(file) {
 }
 
 function displayMapSource(file) {
-  return String(file || "").startsWith("data:") ? "Uploaded image" : file;
+  const value = String(file || "");
+  return value.startsWith("data:") || value.includes("/api/maps/") ? "Uploaded image" : value;
 }
 
 function getNextSlotNumber(map) {
