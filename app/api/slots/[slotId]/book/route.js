@@ -8,6 +8,7 @@ export async function POST(request, { params }) {
   const allottee = String(body.allottee || "").trim();
   const mobile = String(body.mobile || "").trim();
   const requestedLevel = String(body.level || "").trim();
+  const address = String(body.address || "").trim();
 
   if (!allottee) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });
@@ -30,6 +31,11 @@ export async function POST(request, { params }) {
 
       if (!slot) {
         throw new Error("Slot not found.");
+      }
+
+      const user = await tx.userMaster.findUnique({ where: { mobile } });
+      if (!user || !user.active) {
+        throw new Error("This mobile number is not registered for parking access.");
       }
 
       const existingUserBooking = await tx.booking.findFirst({
@@ -57,11 +63,25 @@ export async function POST(request, { params }) {
         throw new Error(`${slot.slotNo} is fully booked.`);
       }
 
+      await tx.appCounter.upsert({
+        where: { key: "receipt" },
+        update: {},
+        create: { key: "receipt", value: 0 }
+      });
+      const counter = await tx.appCounter.update({
+        where: { key: "receipt" },
+        data: { value: { increment: 1 } }
+      });
+      const receiptNo = `SP/${String(counter.value).padStart(3, "0")}`;
+
       const booking = await tx.booking.create({
         data: {
           slotId: slot.id,
-          allottee,
+          userId: user.id,
+          receiptNo,
+          allottee: user.name || allottee,
           mobile,
+          address: user.address || address,
           level
         }
       });

@@ -4,6 +4,25 @@ import path from "path";
 import { prisma } from "../../../../lib/prisma";
 import { broadcastRealtime } from "../../../../lib/realtime";
 
+export async function PATCH(request, { params }) {
+  const body = await request.json();
+  const data = {};
+
+  if (body.name !== undefined) data.name = String(body.name || "").trim();
+  if (body.parkingLevel !== undefined) {
+    const parkingLevel = Number(body.parkingLevel);
+    if (Number.isFinite(parkingLevel)) data.parkingLevel = Math.max(1, Math.min(5, Math.trunc(parkingLevel)));
+  }
+
+  if (data.name === "") {
+    return NextResponse.json({ error: "Parking/map name is required." }, { status: 400 });
+  }
+
+  const map = await prisma.map.update({ where: { id: params.mapId }, data });
+  await broadcastRealtime("map:changed", { locationId: map.locationId, mapId: map.id, action: "updated" });
+  return NextResponse.json({ map });
+}
+
 export async function DELETE(_request, { params }) {
   const map = await prisma.map.findUnique({ where: { id: params.mapId } });
   if (!map) {

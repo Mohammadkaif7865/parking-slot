@@ -17,14 +17,19 @@ const emptySlot = {
 };
 
 const draftSlotId = "draft-slot";
+const emptyUserForm = { id: "", name: "", mobile: "", address: "", active: true };
 
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false);
   const [locations, setLocations] = useState([]);
+  const [users, setUsers] = useState([]);
   const [locationId, setLocationId] = useState("");
   const [mapId, setMapId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [form, setForm] = useState(emptySlot);
+  const [userForm, setUserForm] = useState(emptyUserForm);
+  const [locationForm, setLocationForm] = useState({ name: "", parkingName: "", city: "" });
+  const [mapTitle, setMapTitle] = useState("");
   const [mapName, setMapName] = useState("");
   const [mapLevels, setMapLevels] = useState([1]);
   const [mapFile, setMapFile] = useState(null);
@@ -41,6 +46,7 @@ export default function AdminPage() {
     }
     setAuthorized(true);
     loadLocations();
+    loadUsers();
   }, []);
 
   useEffect(() => {
@@ -72,6 +78,12 @@ export default function AdminPage() {
       setLocations(nextLocations);
       setLocationId(nextLocation?.id || "");
       setMapId(nextMap?.id || "");
+      setLocationForm({
+        name: nextLocation?.name || "",
+        parkingName: nextLocation?.parkingName || "",
+        city: nextLocation?.city || ""
+      });
+      setMapTitle(nextMap?.name || "");
       if (nextSlot) {
         setSelectedSlotId(nextSlot.id);
         setForm(slotToForm(nextSlot));
@@ -81,6 +93,20 @@ export default function AdminPage() {
         setMessage(`Could not load data: ${error.message}`);
         showToast("error", `Could not load data: ${error.message}`);
       }
+    }
+  }
+
+  async function loadUsers() {
+    try {
+      const response = await fetch("/api/users", { cache: "no-store" });
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(data.error || "Could not load users.");
+      }
+      setUsers(data.users || []);
+    } catch (error) {
+      setMessage(`Could not load users: ${error.message}`);
+      showToast("error", `Could not load users: ${error.message}`);
     }
   }
 
@@ -134,12 +160,20 @@ export default function AdminPage() {
     const nextLocation = locations.find((location) => location.id === nextLocationId);
     setLocationId(nextLocationId);
     setMapId(nextLocation?.maps[0]?.id || "");
+    setMapTitle(nextLocation?.maps[0]?.name || "");
+    setLocationForm({
+      name: nextLocation?.name || "",
+      parkingName: nextLocation?.parkingName || "",
+      city: nextLocation?.city || ""
+    });
     setSelectedSlotId("");
     setForm(emptySlot);
   }
 
   function selectMap(nextMapId) {
+    const nextMap = activeLocation?.maps.find((map) => map.id === nextMapId);
     setMapId(nextMapId);
+    setMapTitle(nextMap?.name || "");
     setSelectedSlotId("");
     setForm(emptySlot);
   }
@@ -173,6 +207,123 @@ export default function AdminPage() {
 
   function updateForm(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function editUser(user) {
+    setUserForm({
+      id: user.id,
+      name: user.name || "",
+      mobile: user.mobile || "",
+      address: user.address || "",
+      active: user.active !== false
+    });
+  }
+
+  function resetUserForm() {
+    setUserForm(emptyUserForm);
+  }
+
+  async function saveUser(event) {
+    event.preventDefault();
+    if (!userForm.name.trim() || userForm.mobile.length !== 10) {
+      setMessage("User name and 10 digit mobile are required.");
+      showToast("error", "User name and 10 digit mobile are required.");
+      return;
+    }
+
+    setPendingAction("saveUser");
+    try {
+      const response = await fetch(userForm.id ? `/api/users/${userForm.id}` : "/api/users", {
+        method: userForm.id ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userForm)
+      });
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(data.error || "Could not save user.");
+      }
+      setMessage(`${data.user.name} saved in user master.`);
+      showToast("success", `${data.user.name} saved.`);
+      resetUserForm();
+      await loadUsers();
+    } catch (error) {
+      setMessage(`Could not save user: ${error.message}`);
+      showToast("error", `Could not save user: ${error.message}`);
+    } finally {
+      setPendingAction("");
+    }
+  }
+
+  async function deleteUser(userId) {
+    setPendingAction(`deleteUser-${userId}`);
+    try {
+      const response = await fetch(`/api/users/${userId}`, { method: "DELETE" });
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(data.error || "Could not delete user.");
+      }
+      setMessage(`${data.user.name} deleted from user master.`);
+      showToast("success", `${data.user.name} deleted.`);
+      if (userForm.id === userId) resetUserForm();
+      await loadUsers();
+    } catch (error) {
+      setMessage(`Could not delete user: ${error.message}`);
+      showToast("error", `Could not delete user: ${error.message}`);
+    } finally {
+      setPendingAction("");
+    }
+  }
+
+  async function saveLocationMaster(event) {
+    event.preventDefault();
+    if (!activeLocation) return;
+
+    setPendingAction("saveLocation");
+    try {
+      const response = await fetch(`/api/locations/${activeLocation.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(locationForm)
+      });
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(data.error || "Could not save location.");
+      }
+      setMessage(`${data.location.name} location saved.`);
+      showToast("success", "Location master saved.");
+      await loadLocations(data.location.id, mapId, selectedSlotId);
+    } catch (error) {
+      setMessage(`Could not save location: ${error.message}`);
+      showToast("error", `Could not save location: ${error.message}`);
+    } finally {
+      setPendingAction("");
+    }
+  }
+
+  async function saveMapTitle(event) {
+    event.preventDefault();
+    if (!activeMap) return;
+
+    setPendingAction("saveMapTitle");
+    try {
+      const response = await fetch(`/api/maps/${activeMap.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: mapTitle })
+      });
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(data.error || "Could not save parking name.");
+      }
+      setMessage(`${data.map.name} parking map saved.`);
+      showToast("success", "Parking name saved.");
+      await loadLocations(locationId, data.map.id, selectedSlotId);
+    } catch (error) {
+      setMessage(`Could not save parking name: ${error.message}`);
+      showToast("error", `Could not save parking name: ${error.message}`);
+    } finally {
+      setPendingAction("");
+    }
   }
 
   function toggleMapLevel(level) {
@@ -417,6 +568,16 @@ export default function AdminPage() {
             </select>
           </section>
 
+          <form className="master-box" onSubmit={saveLocationMaster}>
+            <p className="section-label">Location Master</p>
+            <input value={locationForm.name} onChange={(event) => setLocationForm((current) => ({ ...current, name: event.target.value }))} placeholder="Location name" />
+            <input value={locationForm.parkingName} onChange={(event) => setLocationForm((current) => ({ ...current, parkingName: event.target.value }))} placeholder="Parking name" />
+            <input value={locationForm.city} onChange={(event) => setLocationForm((current) => ({ ...current, city: event.target.value }))} placeholder="City / area" />
+            <button className="secondary" disabled={!activeLocation || Boolean(pendingAction)} type="submit">
+              {pendingAction === "saveLocation" ? "Saving..." : "Save Location"}
+            </button>
+          </form>
+
           <section>
             <p className="section-label">Maps</p>
             <div className="map-list">
@@ -449,9 +610,49 @@ export default function AdminPage() {
 
           <section>
             <p className="section-label">Selected Map</p>
+            <form className="master-box compact-master" onSubmit={saveMapTitle}>
+              <input value={mapTitle} onChange={(event) => setMapTitle(event.target.value)} placeholder="Parking / map name" />
+              <button className="secondary" disabled={!activeMap || Boolean(pendingAction)} type="submit">
+                {pendingAction === "saveMapTitle" ? "Saving..." : "Save Parking Name"}
+              </button>
+            </form>
             <button className="ghost danger-text" onClick={deleteMap} disabled={!activeMap || Boolean(pendingAction)} type="button">
               {pendingAction === "deleteMap" ? "Deleting..." : "Delete Imported Map"}
             </button>
+          </section>
+
+          <section>
+            <p className="section-label">User Master</p>
+            <form className="master-box" onSubmit={saveUser}>
+              <input value={userForm.name} onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))} placeholder="User name" />
+              <input value={userForm.mobile} onChange={(event) => setUserForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile number" />
+              <input value={userForm.address} onChange={(event) => setUserForm((current) => ({ ...current, address: event.target.value }))} placeholder="Flat / address" />
+              <label className="inline-check">
+                <input type="checkbox" checked={userForm.active} onChange={(event) => setUserForm((current) => ({ ...current, active: event.target.checked }))} />
+                <span>Active login access</span>
+              </label>
+              <div className="split-actions">
+                <button className="secondary" disabled={Boolean(pendingAction)} type="submit">
+                  {pendingAction === "saveUser" ? "Saving..." : userForm.id ? "Update User" : "Add User"}
+                </button>
+                <button className="ghost" disabled={Boolean(pendingAction)} type="button" onClick={resetUserForm}>Clear</button>
+              </div>
+            </form>
+            <div className="user-master-list">
+              {users.map((user) => (
+                <article className={`user-master-item ${user.active ? "" : "inactive"}`} key={user.id}>
+                  <button type="button" onClick={() => editUser(user)}>
+                    <strong>{user.name}</strong>
+                    <span>{user.mobile}</span>
+                    <small>{user.address || "No address"}{user.active ? "" : " - inactive"}</small>
+                  </button>
+                  <button className="ghost danger-text compact-action" disabled={Boolean(pendingAction)} type="button" onClick={() => deleteUser(user.id)}>
+                    {pendingAction === `deleteUser-${user.id}` ? "..." : "Delete"}
+                  </button>
+                </article>
+              ))}
+              {!users.length && <p className="empty">No users added yet.</p>}
+            </div>
           </section>
         </aside>
 

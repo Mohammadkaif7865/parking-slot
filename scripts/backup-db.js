@@ -28,7 +28,9 @@ async function main() {
   const locations = await prisma.location.findMany({ orderBy: { createdAt: "asc" } });
   const maps = await prisma.map.findMany({ orderBy: { createdAt: "asc" } });
   const slots = await prisma.parkingSlot.findMany({ orderBy: { createdAt: "asc" } });
+  const users = await prisma.userMaster.findMany({ orderBy: { createdAt: "asc" } });
   const bookings = await prisma.booking.findMany({ orderBy: { createdAt: "asc" } });
+  const counters = await prisma.appCounter.findMany({ orderBy: { key: "asc" } });
 
   const backup = {
     createdAt: new Date().toISOString(),
@@ -36,7 +38,9 @@ async function main() {
       Location: locations,
       Map: maps,
       ParkingSlot: slots,
-      Booking: bookings
+      UserMaster: users,
+      Booking: bookings,
+      AppCounter: counters
     }
   };
 
@@ -49,10 +53,12 @@ async function main() {
 
   const sql = [
     "BEGIN;",
-    insert("Location", ["id", "name", "city", "createdAt", "updatedAt"], locations),
+    insert("Location", ["id", "name", "parkingName", "city", "createdAt", "updatedAt"], locations),
     insert("Map", ["id", "locationId", "name", "filePath", "parkingLevel", "sourceType", "createdAt", "updatedAt"], maps),
     insert("ParkingSlot", ["id", "mapId", "slotNo", "zone", "type", "x", "y", "width", "height", "status", "createdAt", "updatedAt"], slots),
-    insert("Booking", ["id", "slotId", "allottee", "mobile", "level", "status", "createdAt", "updatedAt"], bookings),
+    insert("UserMaster", ["id", "name", "mobile", "address", "active", "createdAt", "updatedAt"], users),
+    insert("Booking", ["id", "slotId", "userId", "receiptNo", "allottee", "mobile", "address", "level", "status", "createdAt", "updatedAt"], bookings),
+    insert("AppCounter", ["key", "value", "updatedAt"], counters),
     "COMMIT;"
   ].join("\n\n");
 
@@ -61,7 +67,7 @@ async function main() {
 JSON: ${jsonPath}
 SQL: ${sqlPath}
 Schema: ${schemaPath}
-Rows: locations=${locations.length}, maps=${maps.length}, slots=${slots.length}, bookings=${bookings.length}`);
+Rows: locations=${locations.length}, maps=${maps.length}, slots=${slots.length}, users=${users.length}, bookings=${bookings.length}, counters=${counters.length}`);
 }
 
 main()

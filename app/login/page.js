@@ -14,14 +14,31 @@ export default function UserLoginPage() {
     OTP_LOGIN_DISABLED ? "OTP is temporarily disabled. Enter mobile number to continue." : "Login with mobile OTP."
   );
 
-  function loginDirectly(event) {
+  async function loginDirectly(event) {
     event.preventDefault();
     if (mobile.length !== 10) {
       setMessage("Enter a valid 10 digit mobile number.");
       return;
     }
-    localStorage.setItem("parking-auth", JSON.stringify({ role: "user", mobile }));
-    window.location.href = "/";
+    setPending(true);
+    try {
+      const response = await fetch("/api/auth/user-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobile })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setMessage(data.error || "Login failed.");
+        return;
+      }
+      localStorage.setItem("parking-auth", JSON.stringify(data.user));
+      window.location.href = "/";
+    } catch (error) {
+      setMessage(`Login failed: ${error.message}`);
+    } finally {
+      setPending(false);
+    }
   }
 
   // WhatsApp OTP flow is kept here for future re-enable.

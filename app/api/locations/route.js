@@ -30,6 +30,7 @@ export async function GET() {
       locations: locations.map((location) => ({
         id: location.id,
         name: location.name,
+        parkingName: location.parkingName || "",
         city: location.city,
         maps: location.maps.map((map) => ({
           id: map.id,
@@ -57,13 +58,17 @@ export async function GET() {
               bookings: slot.bookings.map((booking) => ({
                 id: booking.id,
                 level: booking.level || "",
+                receiptNo: booking.receiptNo || "",
                 allottee: booking.allottee || "",
                 mobile: booking.mobile || "",
+                address: booking.address || "",
                 createdAt: booking.createdAt
               })),
               level: activeBooking?.level || "",
+              receiptNo: activeBooking?.receiptNo || "",
               allottee: activeBooking?.allottee || "",
               mobile: activeBooking?.mobile || "",
+              address: activeBooking?.address || "",
               bookedAt: activeBooking?.createdAt || null
             };
           })

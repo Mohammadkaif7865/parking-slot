@@ -92,6 +92,8 @@ export default function Home() {
   const selectedLevelBooked = isStackSlot && selectedSlot?.bookedLevels?.includes(stackLevel);
   const selectedLevelBooking = selectedSlot ? getBookingForLevel(selectedSlot, stackLevel) : null;
   const sessionMobile = auth?.mobile || "";
+  const sessionName = auth?.name || "";
+  const sessionAddress = auth?.address || "";
   const userActiveBooking = useMemo(() => {
     return locations
       .flatMap((location) => location.maps)
@@ -115,8 +117,8 @@ export default function Home() {
   useEffect(() => {
     if (!selectedSlot) return;
     const booking = getBookingForLevel(selectedSlot, stackLevel);
-    setAllottee(booking?.mobile === sessionMobile ? booking?.allottee || "" : "");
-  }, [selectedSlot, stackLevel, sessionMobile]);
+    setAllottee(booking?.mobile === sessionMobile ? booking?.allottee || sessionName : sessionName);
+  }, [selectedSlot, stackLevel, sessionMobile, sessionName]);
 
   const levelOptions = useMemo(() => {
     const levels = new Set((activeLocation?.maps || []).map((map) => map.parkingLevel || 1));
@@ -195,7 +197,7 @@ export default function Home() {
       showToast("error", "Select a parking slot first.");
       return;
     }
-    if (!allottee.trim()) {
+    if (!(sessionName || allottee.trim())) {
       showToast("error", "Enter your name.");
       setMessage("Name is required.");
       return;
@@ -217,9 +219,11 @@ export default function Home() {
       slotNo: getTierSlotNo(selectedSlot, bookingLevel),
       physicalSlotNo: selectedSlot.slotNo,
       bookingLevel,
-      allottee: allottee.trim(),
+      allottee: sessionName || allottee.trim(),
       mobile: sessionMobile,
+      address: sessionAddress,
       location: activeLocation?.name || "",
+      parkingName: activeLocation?.parkingName || activeMap?.name || "",
       map: activeMap?.name || "",
       parkingLevel: selectedLevel
     });
@@ -235,6 +239,7 @@ export default function Home() {
         body: JSON.stringify({
           allottee: bookingConfirmation.allottee,
           mobile: bookingConfirmation.mobile,
+          address: bookingConfirmation.address,
           level: bookingConfirmation.bookingLevel
         })
       });
@@ -252,9 +257,12 @@ export default function Home() {
       showToast("success", success);
       downloadBookingReceipt({
         bookingId: data.booking?.id,
+        receiptNo: data.booking?.receiptNo,
         name: bookingConfirmation.allottee,
         mobile: bookingConfirmation.mobile,
+        address: bookingConfirmation.address,
         location: bookingConfirmation.location,
+        parkingName: bookingConfirmation.parkingName,
         map: bookingConfirmation.map,
         parkingLevel: bookingConfirmation.parkingLevel,
         slotNo: bookingConfirmation.slotNo,
@@ -401,7 +409,9 @@ export default function Home() {
           pending={pendingAction === "book"}
           selectedLevel={selectedLevel}
           selectedLevelBooking={selectedLevelBooking}
+          sessionAddress={sessionAddress}
           sessionMobile={sessionMobile}
+          sessionName={sessionName}
           slot={selectedSlot}
           stackLevel={stackLevel}
         />
@@ -458,6 +468,8 @@ function SlotBookingPopup({
   selectedLevel,
   selectedLevelBooking,
   sessionMobile,
+  sessionName,
+  sessionAddress,
   slot,
   stackLevel
 }) {
@@ -477,6 +489,8 @@ function SlotBookingPopup({
 
         <dl className="details">
           <div><dt>Phone</dt><dd>{sessionMobile}</dd></div>
+          <div><dt>Name</dt><dd>{sessionName || "-"}</dd></div>
+          <div><dt>Address</dt><dd>{sessionAddress || "-"}</dd></div>
           <div><dt>Level</dt><dd>{selectedLevel}</dd></div>
           <div><dt>Map</dt><dd>{activeMap?.name || "-"}</dd></div>
           <div><dt>Status</dt><dd>{slot.occupancyStatus || slot.status || "-"}</dd></div>
@@ -503,7 +517,7 @@ function SlotBookingPopup({
 
         <label>
           Name
-          <input value={allottee} onChange={(event) => onNameChange(event.target.value)} placeholder="Your name" />
+          <input value={sessionName || allottee} disabled={Boolean(sessionName)} onChange={(event) => onNameChange(event.target.value)} placeholder="Your name" />
         </label>
         <button className="primary" onClick={onBook} disabled={!canBook}>
           {pending ? "Booking..." : "Book Parking"}
@@ -523,6 +537,7 @@ function BookingConfirmModal({ booking, pending, onCancel, onConfirm }) {
         <dl className="confirm-details">
           <div><dt>Name</dt><dd>{booking.allottee}</dd></div>
           <div><dt>Phone</dt><dd>{booking.mobile}</dd></div>
+          <div><dt>Address</dt><dd>{booking.address || "-"}</dd></div>
           <div><dt>Level</dt><dd>{booking.parkingLevel}</dd></div>
           <div><dt>Map</dt><dd>{booking.map || "-"}</dd></div>
           <div><dt>Stack Position</dt><dd>{booking.bookingLevel}</dd></div>
@@ -548,7 +563,13 @@ function getUserSession() {
     const session = JSON.parse(localStorage.getItem("parking-auth") || "{}");
     const mobile = String(session.mobile || session.phone || session.name || "").replace(/\D/g, "");
     if (session.role === "user" && /^[0-9]{10}$/.test(mobile)) {
-      return { role: "user", mobile };
+      return {
+        role: "user",
+        id: session.id || "",
+        name: session.name || "",
+        mobile,
+        address: session.address || ""
+      };
     }
   } catch {
     return null;
@@ -598,10 +619,12 @@ function downloadBookingReceipt(receipt) {
   const lines = [
     "Parking Booking Receipt",
     "",
-    `Receipt No: ${receipt.bookingId || "PENDING"}`,
+    `Receipt No: ${receipt.receiptNo || receipt.bookingId || "PENDING"}`,
     `Name: ${receipt.name}`,
     `Phone: ${receipt.mobile}`,
+    `Address: ${receipt.address || "-"}`,
     `Location: ${receipt.location}`,
+    `Parking: ${receipt.parkingName || receipt.map}`,
     `Map: ${receipt.map}`,
     `Parking Level: ${receipt.parkingLevel}`,
     `Slot: ${receipt.slotNo}`,

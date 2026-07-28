@@ -9,12 +9,13 @@ datasource db {
 }
 
 model Location {
-  id        String   @id @default(cuid())
-  name      String
-  city      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  maps      Map[]
+  id          String   @id @default(cuid())
+  name        String
+  parkingName String?
+  city        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  maps        Map[]
 }
 
 model Map {
@@ -52,11 +53,32 @@ model ParkingSlot {
 model Booking {
   id        String      @id @default(cuid())
   slotId    String
+  userId    String?
+  receiptNo String?
   allottee  String
   mobile    String?
+  address   String?
   level     String?
   status    String      @default("active")
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   slot      ParkingSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  user      UserMaster? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model UserMaster {
+  id        String    @id @default(cuid())
+  name      String
+  mobile    String    @unique
+  address   String?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+}
+
+model AppCounter {
+  key       String   @id
+  value     Int      @default(0)
+  updatedAt DateTime @updatedAt
 }
