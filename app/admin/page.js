@@ -60,7 +60,10 @@ export default function AdminPage() {
   async function loadLocations(preferredLocationId = locationId, preferredMapId = mapId, preferredSlotId = selectedSlotId, options = {}) {
     try {
       const response = await fetch("/api/locations", { cache: "no-store" });
-      const data = await response.json();
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(data.detail || data.error || "Could not load locations.");
+      }
       const nextLocations = data.locations || [];
       const nextLocation = nextLocations.find((item) => item.id === preferredLocationId) || nextLocations[0];
       const nextMap = nextLocation?.maps.find((item) => item.id === preferredMapId) || nextLocation?.maps[0];
@@ -645,6 +648,16 @@ function clamp(value) {
 function isTypingTarget(target) {
   const tagName = target?.tagName?.toLowerCase();
   return tagName === "input" || tagName === "select" || tagName === "textarea" || target?.isContentEditable;
+}
+
+async function readJsonResponse(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text.slice(0, 180) };
+  }
 }
 
 function isPdfMap(file) {

@@ -49,7 +49,10 @@ export default function Home() {
     if (!options.silent) setLoading(true);
     try {
       const response = await fetch("/api/locations", { cache: "no-store" });
-      const data = await response.json();
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(data.detail || data.error || "Could not load locations.");
+      }
       const nextLocations = data.locations || [];
       const nextLocation = nextLocations.find((item) => item.id === preferredLocationId) || nextLocations[0];
       const maps = nextLocation?.maps || [];
@@ -639,4 +642,14 @@ function downloadBookingReceipt(receipt) {
 
 function escapePdfText(value) {
   return String(value || "").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
+
+async function readJsonResponse(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text.slice(0, 180) };
+  }
 }
