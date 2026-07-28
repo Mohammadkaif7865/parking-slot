@@ -18,6 +18,7 @@ const emptySlot = {
 
 const draftSlotId = "draft-slot";
 const emptyUserForm = { id: "", name: "", mobile: "", address: "", active: true };
+const emptyLocationForm = { id: "", name: "", parkingName: "", city: "" };
 
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false);
@@ -29,7 +30,7 @@ export default function AdminPage() {
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [form, setForm] = useState(emptySlot);
   const [userForm, setUserForm] = useState(emptyUserForm);
-  const [locationForm, setLocationForm] = useState({ name: "", parkingName: "", city: "" });
+  const [locationForm, setLocationForm] = useState(emptyLocationForm);
   const [mapTitle, setMapTitle] = useState("");
   const [mapName, setMapName] = useState("");
   const [mapLevels, setMapLevels] = useState([1]);
@@ -80,6 +81,7 @@ export default function AdminPage() {
       setLocationId(nextLocation?.id || "");
       setMapId(nextMap?.id || "");
       setLocationForm({
+        id: nextLocation?.id || "",
         name: nextLocation?.name || "",
         parkingName: nextLocation?.parkingName || "",
         city: nextLocation?.city || ""
@@ -163,6 +165,7 @@ export default function AdminPage() {
     setMapId(nextLocation?.maps[0]?.id || "");
     setMapTitle(nextLocation?.maps[0]?.name || "");
     setLocationForm({
+      id: nextLocation?.id || "",
       name: nextLocation?.name || "",
       parkingName: nextLocation?.parkingName || "",
       city: nextLocation?.city || ""
@@ -224,6 +227,12 @@ export default function AdminPage() {
     setUserForm(emptyUserForm);
   }
 
+  function newLocation() {
+    setLocationForm(emptyLocationForm);
+    setMapTitle("");
+    setMessage("Enter location details, then save.");
+  }
+
   async function saveUser(event) {
     event.preventDefault();
     if (!userForm.name.trim() || userForm.mobile.length !== 10) {
@@ -277,12 +286,16 @@ export default function AdminPage() {
 
   async function saveLocationMaster(event) {
     event.preventDefault();
-    if (!activeLocation) return;
+    if (!locationForm.name.trim()) {
+      setMessage("Location name is required.");
+      showToast("error", "Location name is required.");
+      return;
+    }
 
     setPendingAction("saveLocation");
     try {
-      const response = await fetch(`/api/locations/${activeLocation.id}`, {
-        method: "PATCH",
+      const response = await fetch(locationForm.id ? `/api/locations/${locationForm.id}` : "/api/locations", {
+        method: locationForm.id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(locationForm)
       });
@@ -290,8 +303,14 @@ export default function AdminPage() {
       if (!response.ok) {
         throw new Error(data.error || "Could not save location.");
       }
+      setLocationForm({
+        id: data.location.id,
+        name: data.location.name || "",
+        parkingName: data.location.parkingName || "",
+        city: data.location.city || ""
+      });
       setMessage(`${data.location.name} location saved.`);
-      showToast("success", "Location master saved.");
+      showToast("success", locationForm.id ? "Location master saved." : "New location created.");
       await loadLocations(data.location.id, mapId, selectedSlotId);
     } catch (error) {
       setMessage(`Could not save location: ${error.message}`);
@@ -793,20 +812,23 @@ export default function AdminPage() {
             <div className="master-card-head">
               <div>
                 <p className="section-label">Location Master</p>
-                <h2>Location Details</h2>
+                <h2>{locationForm.id ? "Edit Location" : "New Location"}</h2>
               </div>
-              <select className="compact-select" value={locationId} onChange={(event) => selectLocation(event.target.value)}>
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>{location.name}</option>
-                ))}
-              </select>
+              <div className="master-actions">
+                <select className="compact-select" value={locationId} onChange={(event) => selectLocation(event.target.value)}>
+                  {locations.map((location) => (
+                    <option key={location.id} value={location.id}>{location.name}</option>
+                  ))}
+                </select>
+                <button className="ghost inline-action" disabled={Boolean(pendingAction)} type="button" onClick={newLocation}>New Location</button>
+              </div>
             </div>
             <form className="master-box master-form-grid" onSubmit={saveLocationMaster}>
               <input value={locationForm.name} onChange={(event) => setLocationForm((current) => ({ ...current, name: event.target.value }))} placeholder="Location name" />
               <input value={locationForm.parkingName} onChange={(event) => setLocationForm((current) => ({ ...current, parkingName: event.target.value }))} placeholder="Default parking name" />
               <input value={locationForm.city} onChange={(event) => setLocationForm((current) => ({ ...current, city: event.target.value }))} placeholder="City / area" />
-              <button className="secondary" disabled={!activeLocation || Boolean(pendingAction)} type="submit">
-                {pendingAction === "saveLocation" ? "Saving..." : "Save Location"}
+              <button className="secondary" disabled={Boolean(pendingAction)} type="submit">
+                {pendingAction === "saveLocation" ? "Saving..." : locationForm.id ? "Save Location" : "Create Location"}
               </button>
             </form>
           </div>

@@ -4,6 +4,27 @@ import { getLevelOccupancy, getOccupancyStatus } from "../../../lib/parking-leve
 
 export const dynamic = "force-dynamic";
 
+export async function POST(request) {
+  const body = await request.json();
+  const name = String(body.name || "").trim();
+  const parkingName = String(body.parkingName || "").trim();
+  const city = String(body.city || "").trim();
+
+  if (!name) {
+    return NextResponse.json({ error: "Location name is required." }, { status: 400 });
+  }
+
+  const location = await prisma.location.create({
+    data: {
+      name,
+      parkingName,
+      city
+    }
+  });
+
+  return NextResponse.json({ location });
+}
+
 export async function GET() {
   try {
     const locations = await prisma.location.findMany({

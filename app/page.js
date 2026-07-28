@@ -318,7 +318,8 @@ export default function Home() {
                 return (
                   <button className="level-button" key={level} onClick={() => selectLevel(level)}>
                     <span>{parkingName}</span>
-                    <small>Level {level} - {levelStats[level]?.maps || 0} map - {levelStats[level]?.physicalSlots || 0} slots</small>
+                    <small>Level {level}</small>
+                    <em>{levelStats[level]?.maps || 0} map - {levelStats[level]?.physicalSlots || 0} slots</em>
                     <dl className="level-stats">
                       <div><dt>Capacity</dt><dd>{levelStats[level]?.totalCapacity || 0}</dd></div>
                       <div><dt>Empty</dt><dd>{levelStats[level]?.availableCapacity || 0}</dd></div>
