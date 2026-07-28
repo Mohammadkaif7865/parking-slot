@@ -21,6 +21,7 @@ const emptyUserForm = { id: "", name: "", mobile: "", address: "", active: true 
 
 export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false);
+  const [adminTab, setAdminTab] = useState("maps");
   const [locations, setLocations] = useState([]);
   const [users, setUsers] = useState([]);
   const [locationId, setLocationId] = useState("");
@@ -557,6 +558,13 @@ export default function AdminPage() {
         </div>
       </header>
 
+      <nav className="admin-tabs" aria-label="Admin sections">
+        <button className={adminTab === "maps" ? "active" : ""} type="button" onClick={() => setAdminTab("maps")}>Map Manager</button>
+        <button className={adminTab === "users" ? "active" : ""} type="button" onClick={() => setAdminTab("users")}>User Master</button>
+        <button className={adminTab === "locations" ? "active" : ""} type="button" onClick={() => setAdminTab("locations")}>Location Master</button>
+      </nav>
+
+      {adminTab === "maps" && (
       <section className="layout admin-layout">
         <aside className="sidebar">
           <section>
@@ -567,16 +575,6 @@ export default function AdminPage() {
               ))}
             </select>
           </section>
-
-          <form className="master-box" onSubmit={saveLocationMaster}>
-            <p className="section-label">Location Master</p>
-            <input value={locationForm.name} onChange={(event) => setLocationForm((current) => ({ ...current, name: event.target.value }))} placeholder="Location name" />
-            <input value={locationForm.parkingName} onChange={(event) => setLocationForm((current) => ({ ...current, parkingName: event.target.value }))} placeholder="Parking name" />
-            <input value={locationForm.city} onChange={(event) => setLocationForm((current) => ({ ...current, city: event.target.value }))} placeholder="City / area" />
-            <button className="secondary" disabled={!activeLocation || Boolean(pendingAction)} type="submit">
-              {pendingAction === "saveLocation" ? "Saving..." : "Save Location"}
-            </button>
-          </form>
 
           <section>
             <p className="section-label">Maps</p>
@@ -610,49 +608,9 @@ export default function AdminPage() {
 
           <section>
             <p className="section-label">Selected Map</p>
-            <form className="master-box compact-master" onSubmit={saveMapTitle}>
-              <input value={mapTitle} onChange={(event) => setMapTitle(event.target.value)} placeholder="Parking / map name" />
-              <button className="secondary" disabled={!activeMap || Boolean(pendingAction)} type="submit">
-                {pendingAction === "saveMapTitle" ? "Saving..." : "Save Parking Name"}
-              </button>
-            </form>
             <button className="ghost danger-text" onClick={deleteMap} disabled={!activeMap || Boolean(pendingAction)} type="button">
               {pendingAction === "deleteMap" ? "Deleting..." : "Delete Imported Map"}
             </button>
-          </section>
-
-          <section>
-            <p className="section-label">User Master</p>
-            <form className="master-box" onSubmit={saveUser}>
-              <input value={userForm.name} onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))} placeholder="User name" />
-              <input value={userForm.mobile} onChange={(event) => setUserForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile number" />
-              <input value={userForm.address} onChange={(event) => setUserForm((current) => ({ ...current, address: event.target.value }))} placeholder="Flat / address" />
-              <label className="inline-check">
-                <input type="checkbox" checked={userForm.active} onChange={(event) => setUserForm((current) => ({ ...current, active: event.target.checked }))} />
-                <span>Active login access</span>
-              </label>
-              <div className="split-actions">
-                <button className="secondary" disabled={Boolean(pendingAction)} type="submit">
-                  {pendingAction === "saveUser" ? "Saving..." : userForm.id ? "Update User" : "Add User"}
-                </button>
-                <button className="ghost" disabled={Boolean(pendingAction)} type="button" onClick={resetUserForm}>Clear</button>
-              </div>
-            </form>
-            <div className="user-master-list">
-              {users.map((user) => (
-                <article className={`user-master-item ${user.active ? "" : "inactive"}`} key={user.id}>
-                  <button type="button" onClick={() => editUser(user)}>
-                    <strong>{user.name}</strong>
-                    <span>{user.mobile}</span>
-                    <small>{user.address || "No address"}{user.active ? "" : " - inactive"}</small>
-                  </button>
-                  <button className="ghost danger-text compact-action" disabled={Boolean(pendingAction)} type="button" onClick={() => deleteUser(user.id)}>
-                    {pendingAction === `deleteUser-${user.id}` ? "..." : "Delete"}
-                  </button>
-                </article>
-              ))}
-              {!users.length && <p className="empty">No users added yet.</p>}
-            </div>
           </section>
         </aside>
 
@@ -778,6 +736,111 @@ export default function AdminPage() {
           <p className="message">{message}</p>
         </aside>
       </section>
+      )}
+
+      {adminTab === "users" && (
+        <section className="master-panel">
+          <div className="master-card">
+            <div className="master-card-head">
+              <div>
+                <p className="section-label">User Master</p>
+                <h2>{userForm.id ? "Edit User" : "Add User"}</h2>
+              </div>
+              <button className="ghost inline-action" disabled={Boolean(pendingAction)} type="button" onClick={resetUserForm}>New User</button>
+            </div>
+            <form className="master-box master-form-grid" onSubmit={saveUser}>
+              <input value={userForm.name} onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))} placeholder="User name" />
+              <input value={userForm.mobile} onChange={(event) => setUserForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile number" />
+              <input value={userForm.address} onChange={(event) => setUserForm((current) => ({ ...current, address: event.target.value }))} placeholder="Flat / address" />
+              <label className="inline-check">
+                <input type="checkbox" checked={userForm.active} onChange={(event) => setUserForm((current) => ({ ...current, active: event.target.checked }))} />
+                <span>Active login access</span>
+              </label>
+              <div className="split-actions">
+                <button className="secondary" disabled={Boolean(pendingAction)} type="submit">
+                  {pendingAction === "saveUser" ? "Saving..." : userForm.id ? "Update User" : "Add User"}
+                </button>
+                <button className="ghost" disabled={Boolean(pendingAction)} type="button" onClick={resetUserForm}>Clear</button>
+              </div>
+            </form>
+          </div>
+
+          <div className="master-card">
+            <p className="section-label">Registered Users</p>
+            <div className="user-master-table">
+              {users.map((user) => (
+                <article className={`user-master-row ${user.active ? "" : "inactive"}`} key={user.id}>
+                  <div>
+                    <strong>{user.name}</strong>
+                    <span>{user.mobile}</span>
+                    <small>{user.address || "No address"}{user.active ? "" : " - inactive"}</small>
+                  </div>
+                  <button className="secondary compact-action" type="button" onClick={() => editUser(user)}>Edit</button>
+                  <button className="ghost danger-text compact-action" disabled={Boolean(pendingAction)} type="button" onClick={() => deleteUser(user.id)}>
+                    {pendingAction === `deleteUser-${user.id}` ? "Deleting..." : "Delete"}
+                  </button>
+                </article>
+              ))}
+              {!users.length && <p className="empty">No users added yet.</p>}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {adminTab === "locations" && (
+        <section className="master-panel">
+          <div className="master-card">
+            <div className="master-card-head">
+              <div>
+                <p className="section-label">Location Master</p>
+                <h2>Location Details</h2>
+              </div>
+              <select className="compact-select" value={locationId} onChange={(event) => selectLocation(event.target.value)}>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>{location.name}</option>
+                ))}
+              </select>
+            </div>
+            <form className="master-box master-form-grid" onSubmit={saveLocationMaster}>
+              <input value={locationForm.name} onChange={(event) => setLocationForm((current) => ({ ...current, name: event.target.value }))} placeholder="Location name" />
+              <input value={locationForm.parkingName} onChange={(event) => setLocationForm((current) => ({ ...current, parkingName: event.target.value }))} placeholder="Default parking name" />
+              <input value={locationForm.city} onChange={(event) => setLocationForm((current) => ({ ...current, city: event.target.value }))} placeholder="City / area" />
+              <button className="secondary" disabled={!activeLocation || Boolean(pendingAction)} type="submit">
+                {pendingAction === "saveLocation" ? "Saving..." : "Save Location"}
+              </button>
+            </form>
+          </div>
+
+          <div className="master-card">
+            <div className="master-card-head">
+              <div>
+                <p className="section-label">Parking Names</p>
+                <h2>Location Wise Parking</h2>
+              </div>
+              <select className="compact-select" value={mapId} onChange={(event) => selectMap(event.target.value)}>
+                {activeLocation?.maps.map((map) => (
+                  <option key={map.id} value={map.id}>Level {map.parkingLevel || 1} - {map.name}</option>
+                ))}
+              </select>
+            </div>
+            <form className="master-box master-form-grid" onSubmit={saveMapTitle}>
+              <input value={mapTitle} onChange={(event) => setMapTitle(event.target.value)} placeholder="Parking / map name" />
+              <button className="secondary" disabled={!activeMap || Boolean(pendingAction)} type="submit">
+                {pendingAction === "saveMapTitle" ? "Saving..." : "Save Parking Name"}
+              </button>
+            </form>
+            <div className="parking-name-list">
+              {activeLocation?.maps.map((map) => (
+                <button className={`map-item ${map.id === activeMap?.id ? "active" : ""}`} key={map.id} type="button" onClick={() => selectMap(map.id)}>
+                  <span>Level {map.parkingLevel || 1}</span>
+                  <em>{map.name}</em>
+                  <small>{displayMapSource(map.file)}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       <Toast toast={toast} onClose={() => setToast(null)} />
     </main>
   );

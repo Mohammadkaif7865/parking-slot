@@ -114,6 +114,109 @@ h2 {
   font-size: 22px;
 }
 
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 0;
+  background: var(--bg);
+}
+
+.admin-tabs button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px 6px 0 0;
+  background: #f8faf9;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.admin-tabs button.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.master-panel {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.master-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.master-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.compact-select {
+  width: min(360px, 100%);
+}
+
+.master-form-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+}
+
+.master-form-grid .split-actions {
+  grid-column: span 1;
+}
+
+.user-master-table {
+  display: grid;
+  gap: 8px;
+}
+
+.user-master-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px 88px;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f8faf9;
+}
+
+.user-master-row.inactive {
+  opacity: 0.7;
+}
+
+.user-master-row > div {
+  display: grid;
+  gap: 2px;
+}
+
+.user-master-row strong,
+.user-master-row span,
+.user-master-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-master-row span,
+.user-master-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.parking-name-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
 .layout {
   display: grid;
   grid-template-columns: 270px minmax(0, 1fr) 320px;
@@ -896,7 +999,7 @@ label {
 
 .level-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin: 8px 0 0;
 }
@@ -1131,6 +1234,18 @@ label {
 
   .level-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .master-card-head {
+    flex-direction: column;
+  }
+
+  .master-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .user-master-row {
+    grid-template-columns: 1fr;
   }
 
   .user-map-shell {

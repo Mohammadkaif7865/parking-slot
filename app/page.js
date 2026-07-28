@@ -312,18 +312,21 @@ export default function Home() {
               </select>
             </label>
             <div className="level-grid">
-              {levelOptions.length ? levelOptions.map((level) => (
-                <button className="level-button" key={level} onClick={() => selectLevel(level)}>
-                  <span>Level {level}</span>
-                  <small>{levelStats[level]?.maps || 0} map - {levelStats[level]?.physicalSlots || 0} slots</small>
-                  <dl className="level-stats">
-                    <div><dt>Capacity</dt><dd>{levelStats[level]?.totalCapacity || 0}</dd></div>
-                    <div><dt>Empty</dt><dd>{levelStats[level]?.availableCapacity || 0}</dd></div>
-                    <div><dt>Booked</dt><dd>{levelStats[level]?.bookedCapacity || 0}</dd></div>
-                    <div><dt>Partial</dt><dd>{levelStats[level]?.partialSlots || 0}</dd></div>
-                  </dl>
-                </button>
-              )) : <p className="empty">No level maps uploaded yet.</p>}
+              {levelOptions.length ? levelOptions.map((level) => {
+                const levelMap = activeLocation?.maps.find((map) => map.parkingLevel === level);
+                const parkingName = levelMap?.name || activeLocation?.parkingName || "Parking";
+                return (
+                  <button className="level-button" key={level} onClick={() => selectLevel(level)}>
+                    <span>{parkingName}</span>
+                    <small>Level {level} - {levelStats[level]?.maps || 0} map - {levelStats[level]?.physicalSlots || 0} slots</small>
+                    <dl className="level-stats">
+                      <div><dt>Capacity</dt><dd>{levelStats[level]?.totalCapacity || 0}</dd></div>
+                      <div><dt>Empty</dt><dd>{levelStats[level]?.availableCapacity || 0}</dd></div>
+                      <div><dt>Booked</dt><dd>{levelStats[level]?.bookedCapacity || 0}</dd></div>
+                    </dl>
+                  </button>
+                );
+              }) : <p className="empty">No level maps uploaded yet.</p>}
             </div>
             {userActiveBooking && (
               <p className="message">Active booking: {userActiveBooking.slot.slotNo} on Level {userActiveBooking.map.parkingLevel}.</p>
