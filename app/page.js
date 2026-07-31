@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Toast from "./components/Toast";
+import { getParkingLevelLabel, getParkingLevelShortLabel } from "../lib/parking-labels";
 
 export default function Home() {
   const [auth, setAuth] = useState(null);
@@ -174,7 +175,7 @@ export default function Home() {
     setSelectedLevel(String(level));
     setMapId(nextMap?.id || "");
     setSelectedSlotId("");
-    setMessage(`Level ${level} selected. Click a parking slot to book.`);
+    setMessage(`${getParkingLevelLabel(level)} selected. Click a parking slot to book.`);
   }
 
   function selectMap(nextMapId) {
@@ -318,7 +319,7 @@ export default function Home() {
                 return (
                   <button className="level-button" key={level} onClick={() => selectLevel(level)}>
                     <span>{parkingName}</span>
-                    <small>Level {level}</small>
+                    <small>{getParkingLevelLabel(level)}</small>
                     <em>{levelStats[level]?.maps || 0} map - {levelStats[level]?.physicalSlots || 0} slots</em>
                     <dl className="level-stats">
                       <div><dt>Capacity</dt><dd>{levelStats[level]?.totalCapacity || 0}</dd></div>
@@ -330,7 +331,7 @@ export default function Home() {
               }) : <p className="empty">No level maps uploaded yet.</p>}
             </div>
             {userActiveBooking && (
-              <p className="message">Active booking: {userActiveBooking.slot.slotNo} on Level {userActiveBooking.map.parkingLevel}.</p>
+              <p className="message">Active booking: {userActiveBooking.slot.slotNo} on {getParkingLevelLabel(userActiveBooking.map.parkingLevel)}.</p>
             )}
             <p className="message">{message}</p>
           </div>
@@ -345,7 +346,7 @@ export default function Home() {
       <header className="map-topbar">
         <div>
           <p className="eyebrow">{activeLocation?.name || "Location"}</p>
-          <h1>Level {selectedLevel} Parking</h1>
+          <h1>{getParkingLevelLabel(selectedLevel)} Parking</h1>
         </div>
         <nav className="top-actions">
           <button className="ghost inline-action" onClick={() => { setSelectedLevel(""); setSelectedSlotId(""); }}>Levels</button>
@@ -357,7 +358,7 @@ export default function Home() {
         <div className="floating-levels">
           {levelOptions.map((level) => (
             <button key={level} className={String(level) === selectedLevel ? "active" : ""} onClick={() => selectLevel(level)}>
-              L{level}
+              {getParkingLevelShortLabel(level)}
             </button>
           ))}
         </div>
@@ -495,7 +496,7 @@ function SlotBookingPopup({
           <div><dt>Phone</dt><dd>{sessionMobile}</dd></div>
           <div><dt>Name</dt><dd>{sessionName || "-"}</dd></div>
           <div><dt>Address</dt><dd>{sessionAddress || "-"}</dd></div>
-          <div><dt>Level</dt><dd>{selectedLevel}</dd></div>
+          <div><dt>Level</dt><dd>{getParkingLevelLabel(selectedLevel)}</dd></div>
           <div><dt>Map</dt><dd>{activeMap?.name || "-"}</dd></div>
           <div><dt>Status</dt><dd>{slot.occupancyStatus || slot.status || "-"}</dd></div>
           {selectedLevelBooking && <div><dt>Booked By</dt><dd>{selectedLevelBooking.allottee}</dd></div>}
@@ -542,7 +543,7 @@ function BookingConfirmModal({ booking, pending, onCancel, onConfirm }) {
           <div><dt>Name</dt><dd>{booking.allottee}</dd></div>
           <div><dt>Phone</dt><dd>{booking.mobile}</dd></div>
           <div><dt>Address</dt><dd>{booking.address || "-"}</dd></div>
-          <div><dt>Level</dt><dd>{booking.parkingLevel}</dd></div>
+          <div><dt>Level</dt><dd>{getParkingLevelLabel(booking.parkingLevel)}</dd></div>
           <div><dt>Map</dt><dd>{booking.map || "-"}</dd></div>
           <div><dt>Stack Position</dt><dd>{booking.bookingLevel}</dd></div>
         </dl>
@@ -630,7 +631,7 @@ function downloadBookingReceipt(receipt) {
     `Location: ${receipt.location}`,
     `Parking: ${receipt.parkingName || receipt.map}`,
     `Map: ${receipt.map}`,
-    `Parking Level: ${receipt.parkingLevel}`,
+    `Parking Level: ${getParkingLevelLabel(receipt.parkingLevel)}`,
     `Slot: ${receipt.slotNo}`,
     `Stack Position: ${receipt.stackLevel}`,
     `Booked At: ${formatDateTime(receipt.bookedAt)}`

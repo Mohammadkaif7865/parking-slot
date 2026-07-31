@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Toast from "../components/Toast";
+import { getParkingLevelLabel, getParkingLevelShortLabel } from "../../lib/parking-labels";
 
 const emptySlot = {
   id: "",
@@ -198,7 +199,7 @@ export default function AdminPage() {
     const nextSlot = {
       ...emptySlot,
       slotNo: getNextSlotNumber(activeMap),
-      zone: `Level ${activeMap.parkingLevel || 1}`,
+      zone: getParkingLevelLabel(activeMap.parkingLevel || 1),
       x: 12,
       y: 12
     };
@@ -600,7 +601,7 @@ export default function AdminPage() {
             <div className="map-list">
               {activeLocation?.maps.map((map) => (
                 <button className={`map-item ${map.id === activeMap?.id ? "active" : ""}`} key={map.id} onClick={() => selectMap(map.id)}>
-                  <span>Level {map.parkingLevel || 1}</span>
+                  <span>{getParkingLevelLabel(map.parkingLevel || 1)}</span>
                   <em>{map.name}</em>
                   <small>{displayMapSource(map.file)}</small>
                 </button>
@@ -615,7 +616,7 @@ export default function AdminPage() {
               {[1, 2, 3, 4, 5].map((level) => (
                 <label key={level} className="level-check">
                   <input type="checkbox" checked={mapLevels.includes(level)} onChange={() => toggleMapLevel(level)} />
-                  <span>L{level}</span>
+                  <span>{getParkingLevelShortLabel(level)}</span>
                 </label>
               ))}
             </div>
@@ -637,7 +638,7 @@ export default function AdminPage() {
           <div className="map-toolbar">
             <div>
               <p className="eyebrow">{activeLocation?.name || "Location"}</p>
-              <h2>{activeMap ? `Level ${activeMap.parkingLevel || 1} - ${activeMap.name}` : "No map selected"}</h2>
+              <h2>{activeMap ? `${getParkingLevelLabel(activeMap.parkingLevel || 1)} - ${activeMap.name}` : "No map selected"}</h2>
             </div>
             <p className="message compact">Select a slot, edit coordinates, then save. Coordinates are percentages over the map.</p>
           </div>
@@ -841,7 +842,7 @@ export default function AdminPage() {
               </div>
               <select className="compact-select" value={mapId} onChange={(event) => selectMap(event.target.value)}>
                 {activeLocation?.maps.map((map) => (
-                  <option key={map.id} value={map.id}>Level {map.parkingLevel || 1} - {map.name}</option>
+                  <option key={map.id} value={map.id}>{getParkingLevelLabel(map.parkingLevel || 1)} - {map.name}</option>
                 ))}
               </select>
             </div>
@@ -854,7 +855,7 @@ export default function AdminPage() {
             <div className="parking-name-list">
               {activeLocation?.maps.map((map) => (
                 <button className={`map-item ${map.id === activeMap?.id ? "active" : ""}`} key={map.id} type="button" onClick={() => selectMap(map.id)}>
-                  <span>Level {map.parkingLevel || 1}</span>
+                  <span>{getParkingLevelLabel(map.parkingLevel || 1)}</span>
                   <em>{map.name}</em>
                   <small>{displayMapSource(map.file)}</small>
                 </button>
