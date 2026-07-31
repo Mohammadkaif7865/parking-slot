@@ -40,6 +40,8 @@ export default function AdminPage() {
   const [pendingAction, setPendingAction] = useState("");
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
+  const locationLoadInFlightRef = useRef(false);
+  const queuedLocationLoadRef = useRef(null);
 
   useEffect(() => {
     const auth = JSON.parse(localStorage.getItem("parking-auth") || "{}");
@@ -56,7 +58,7 @@ export default function AdminPage() {
     const socket = io({ transports: ["websocket"] });
     const refresh = (event) => {
       console.log("[socket] admin received update", event);
-      loadLocations(locationId, mapId, selectedSlotId);
+      loadLocations(locationId, mapId, selectedSlotId, { silent: true });
     };
     socket.on("connect", () => console.log("[socket] admin connected", socket.id));
     socket.on("slot:changed", refresh);
@@ -67,6 +69,12 @@ export default function AdminPage() {
   }, [locationId, mapId, selectedSlotId]);
 
   async function loadLocations(preferredLocationId = locationId, preferredMapId = mapId, preferredSlotId = selectedSlotId, options = {}) {
+    if (locationLoadInFlightRef.current) {
+      queuedLocationLoadRef.current = { preferredLocationId, preferredMapId, preferredSlotId, options };
+      return;
+    }
+
+    locationLoadInFlightRef.current = true;
     try {
       const response = await fetch("/api/locations", { cache: "no-store" });
       const data = await readJsonResponse(response);
@@ -96,6 +104,18 @@ export default function AdminPage() {
       if (!options.silent) {
         setMessage(`Could not load data: ${error.message}`);
         showToast("error", `Could not load data: ${error.message}`);
+      }
+    } finally {
+      locationLoadInFlightRef.current = false;
+      const queuedLoad = queuedLocationLoadRef.current;
+      queuedLocationLoadRef.current = null;
+      if (queuedLoad) {
+        loadLocations(
+          queuedLoad.preferredLocationId,
+          queuedLoad.preferredMapId,
+          queuedLoad.preferredSlotId,
+          queuedLoad.options
+        );
       }
     }
   }

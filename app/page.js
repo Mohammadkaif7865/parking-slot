@@ -20,6 +20,8 @@ export default function Home() {
   const [toast, setToast] = useState(null);
   const [bookingConfirmation, setBookingConfirmation] = useState(null);
   const toastTimerRef = useRef(null);
+  const locationLoadInFlightRef = useRef(false);
+  const queuedLocationLoadRef = useRef(null);
 
   useEffect(() => {
     const session = getUserSession();
@@ -47,6 +49,12 @@ export default function Home() {
   }, [locationId, mapId, selectedSlotId]);
 
   async function loadLocations(preferredLocationId = locationId, preferredMapId = mapId, preferredSlotId = selectedSlotId, options = {}) {
+    if (locationLoadInFlightRef.current) {
+      queuedLocationLoadRef.current = { preferredLocationId, preferredMapId, preferredSlotId, options };
+      return;
+    }
+
+    locationLoadInFlightRef.current = true;
     if (!options.silent) setLoading(true);
     try {
       const response = await fetch("/api/locations", { cache: "no-store" });
@@ -75,7 +83,18 @@ export default function Home() {
         showToast("error", `Could not load data: ${error.message}`);
       }
     } finally {
+      locationLoadInFlightRef.current = false;
+      const queuedLoad = queuedLocationLoadRef.current;
+      queuedLocationLoadRef.current = null;
       if (!options.silent) setLoading(false);
+      if (queuedLoad) {
+        loadLocations(
+          queuedLoad.preferredLocationId,
+          queuedLoad.preferredMapId,
+          queuedLoad.preferredSlotId,
+          queuedLoad.options
+        );
+      }
     }
   }
 
