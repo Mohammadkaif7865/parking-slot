@@ -266,7 +266,13 @@ export default function AdminPage() {
     }
   }
 
-  async function deleteUser(userId) {
+  async function deleteUser(user) {
+    const confirmed = window.confirm(
+      `Delete this user?\n\nName: ${user.name}\nMobile: ${user.mobile}\nAddress: ${user.address || "-"}\n\nThis action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    const userId = user.id;
     setPendingAction(`deleteUser-${userId}`);
     try {
       const response = await fetch(`/api/users/${userId}`, { method: "DELETE" });
@@ -798,7 +804,7 @@ export default function AdminPage() {
                     <small>{user.email || "No email"} - {user.address || "No address"}{user.active ? "" : " - inactive"}</small>
                   </div>
                   <button className="secondary compact-action" type="button" onClick={() => editUser(user)}>Edit</button>
-                  <button className="ghost danger-text compact-action" disabled={Boolean(pendingAction)} type="button" onClick={() => deleteUser(user.id)}>
+                  <button className="ghost danger-text compact-action" disabled={Boolean(pendingAction)} type="button" onClick={() => deleteUser(user)}>
                     {pendingAction === `deleteUser-${user.id}` ? "Deleting..." : "Delete"}
                   </button>
                 </article>
