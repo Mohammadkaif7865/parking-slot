@@ -1,8 +1,13 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Smart Parking Map Booking Demo",
-  description: "Demo booking flow using exported AutoCAD parking maps."
+  title: "Shreeji Plaza Parking",
+  description: "Shreeji Plaza parking booking and slot management.",
+  icons: {
+    icon: "/brand/shreeji-logo.jpeg",
+    shortcut: "/brand/shreeji-logo.jpeg",
+    apple: "/brand/shreeji-logo.jpeg"
+  }
 };
 
 export default function RootLayout({ children }) {

@@ -1,15 +1,17 @@
 :root {
-  --bg: #eef2f0;
+  --bg: #f5f1ec;
   --panel: #ffffff;
-  --ink: #15201c;
-  --muted: #66736d;
-  --line: #d9e2dd;
-  --primary: #1f7358;
-  --available: #34a866;
-  --partial: #d9a02f;
-  --booked: #d94843;
-  --reserved: #858f8a;
-  --selected: #f0c94d;
+  --ink: #201914;
+  --muted: #756c64;
+  --line: #e5d8cc;
+  --primary: #f47f45;
+  --primary-dark: #c95f2c;
+  --brand-soft: #fff3ec;
+  --available: #2f9b63;
+  --partial: #d99b2b;
+  --booked: #c94d43;
+  --reserved: #8e8780;
+  --selected: #ffbf63;
 }
 
 * {
@@ -43,7 +45,7 @@ button {
   justify-content: space-between;
   gap: 18px;
   padding: 18px 24px;
-  background: var(--panel);
+  background: rgba(255, 255, 255, 0.96);
   border-bottom: 1px solid var(--line);
 }
 
@@ -60,7 +62,7 @@ button {
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #f8faf9;
+  background: var(--brand-soft);
   color: var(--primary);
   font-size: 13px;
   font-weight: 700;
@@ -103,7 +105,7 @@ h2 {
   padding: 9px 11px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #f8faf9;
+  background: #fffaf6;
   color: var(--muted);
   font-size: 12px;
 }
@@ -126,7 +128,7 @@ h2 {
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 6px 6px 0 0;
-  background: #f8faf9;
+  background: #fffaf6;
   color: var(--primary);
   font-weight: 800;
 }
@@ -195,7 +197,7 @@ h2 {
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #f8faf9;
+  background: #fffaf6;
 }
 
 .user-master-row.inactive {
@@ -284,14 +286,14 @@ input {
   padding: 9px 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #f8faf9;
+  background: #fffaf6;
   color: var(--ink);
   text-align: left;
 }
 
 .map-item.active {
   border-color: var(--primary);
-  background: #edf6f1;
+  background: var(--brand-soft);
 }
 
 .map-item span {
@@ -342,7 +344,7 @@ input {
   padding: 7px 9px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #f8faf9;
+  background: #fffaf6;
 }
 
 .inline-check input {
@@ -380,7 +382,7 @@ input {
   padding: 9px 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #f8faf9;
+  background: #fffaf6;
   color: var(--ink);
   text-align: left;
 }
@@ -426,7 +428,7 @@ input {
   padding: 7px 4px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #f8faf9;
+  background: #fffaf6;
   color: var(--ink);
 }
 
@@ -791,13 +793,13 @@ label {
 }
 
 .secondary {
-  background: #edf4f0;
+  background: var(--brand-soft);
   color: var(--primary);
 }
 
 .ghost {
   border: 1px solid var(--line);
-  background: #f8faf9;
+  background: #fffaf6;
   color: var(--muted);
 }
 
@@ -918,19 +920,32 @@ label {
   min-height: 100vh;
   place-items: center;
   padding: 20px;
+  background:
+    linear-gradient(90deg, rgba(22, 17, 13, 0.74), rgba(22, 17, 13, 0.2)),
+    url("/brand/shreeji-plaza-building-bg.jpeg") center / cover no-repeat;
 }
 
 .auth-card {
   width: min(420px, 100%);
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(10px);
 }
 
 .auth-card a {
   color: var(--primary);
   font-weight: 700;
+}
+
+.auth-logo {
+  display: block;
+  width: min(230px, 82%);
+  height: auto;
+  margin: 0 0 18px;
+  border-radius: 8px;
 }
 
 .demo-otp {
@@ -942,7 +957,7 @@ label {
   padding: 12px;
   border: 1px dashed var(--primary);
   border-radius: 8px;
-  background: #edf6f1;
+  background: var(--brand-soft);
   color: var(--muted);
 }
 
@@ -960,7 +975,9 @@ label {
 }
 
 .level-shell {
-  background: #eef2f0;
+  background:
+    linear-gradient(180deg, rgba(245, 241, 236, 0.96), rgba(245, 241, 236, 0.98)),
+    url("/brand/shreeji-plaza-building-bg.jpeg") center / cover fixed;
 }
 
 .level-selector {
@@ -994,7 +1011,7 @@ label {
   padding: 16px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f8faf9;
+  background: #fffaf6;
   color: var(--ink);
   text-align: center;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
@@ -1141,7 +1158,7 @@ label {
   height: 32px;
   border: 1px solid var(--line);
   border-radius: 50%;
-  background: #f8faf9;
+  background: #fffaf6;
   color: var(--muted);
   font-weight: 800;
 }
@@ -1216,7 +1233,7 @@ label {
   min-width: 42px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #f8faf9;
+  background: #fffaf6;
   color: var(--primary);
   font-weight: 800;
 }

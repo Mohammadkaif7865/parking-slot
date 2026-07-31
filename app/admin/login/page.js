@@ -33,8 +33,9 @@ export default function AdminLoginPage() {
   return (
     <main className="auth-page">
       <form className="auth-card" onSubmit={login}>
+        <img className="auth-logo" src="/brand/shreeji-logo.jpeg" alt="Shreeji Group" />
         <p className="eyebrow">Admin Login</p>
-        <h1>Map Management</h1>
+        <h1>Parking Management</h1>
         <label>
           Password
           <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Admin password" />
@@ -46,4 +47,3 @@ export default function AdminLoginPage() {
     </main>
   );
 }
-

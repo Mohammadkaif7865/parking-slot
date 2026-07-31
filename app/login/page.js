@@ -92,8 +92,9 @@ export default function UserLoginPage() {
   return (
     <main className="auth-page">
       <form className="auth-card" onSubmit={OTP_LOGIN_DISABLED ? loginDirectly : step === "mobile" ? requestOtp : verifyOtp}>
+        <img className="auth-logo" src="/brand/shreeji-logo.jpeg" alt="Shreeji Group" />
         <p className="eyebrow">User Login</p>
-        <h1>{OTP_LOGIN_DISABLED ? "Parking Login" : "Parking OTP Login"}</h1>
+        <h1>{OTP_LOGIN_DISABLED ? "Shreeji Parking Login" : "Shreeji Parking OTP Login"}</h1>
         <label>
           Mobile Number
           <input value={mobile} disabled={!OTP_LOGIN_DISABLED && step === "otp"} onChange={(event) => setMobile(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="9876543210" />
