@@ -30,6 +30,7 @@ function parseUser(body) {
   return {
     name: String(body.name || "").trim(),
     mobile: String(body.mobile || "").replace(/\D/g, "").slice(0, 10),
+    email: String(body.email || "").trim(),
     address: String(body.address || "").trim(),
     active: body.active !== false
   };

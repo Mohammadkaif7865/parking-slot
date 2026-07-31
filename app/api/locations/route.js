@@ -82,6 +82,7 @@ export async function GET() {
                 receiptNo: booking.receiptNo || "",
                 allottee: booking.allottee || "",
                 mobile: booking.mobile || "",
+                email: booking.email || "",
                 address: booking.address || "",
                 createdAt: booking.createdAt
               })),
@@ -89,6 +90,7 @@ export async function GET() {
               receiptNo: activeBooking?.receiptNo || "",
               allottee: activeBooking?.allottee || "",
               mobile: activeBooking?.mobile || "",
+              email: activeBooking?.email || "",
               address: activeBooking?.address || "",
               bookedAt: activeBooking?.createdAt || null
             };

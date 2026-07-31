@@ -57,6 +57,7 @@ model Booking {
   receiptNo String?
   allottee  String
   mobile    String?
+  email     String?
   address   String?
   level     String?
   status    String      @default("active")
@@ -70,6 +71,7 @@ model UserMaster {
   id        String    @id @default(cuid())
   name      String
   mobile    String    @unique
+  email     String?
   address   String?
   active    Boolean   @default(true)
   createdAt DateTime  @default(now())

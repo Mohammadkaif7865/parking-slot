@@ -20,6 +20,7 @@ export async function POST(request) {
       id: user.id,
       name: user.name,
       mobile: user.mobile,
+      email: user.email || "",
       address: user.address || ""
     }
   });

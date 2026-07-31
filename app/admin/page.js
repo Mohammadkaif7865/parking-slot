@@ -18,7 +18,7 @@ const emptySlot = {
 };
 
 const draftSlotId = "draft-slot";
-const emptyUserForm = { id: "", name: "", mobile: "", address: "", active: true };
+const emptyUserForm = { id: "", name: "", mobile: "", email: "", address: "", active: true };
 const emptyLocationForm = { id: "", name: "", parkingName: "", city: "" };
 
 export default function AdminPage() {
@@ -219,6 +219,7 @@ export default function AdminPage() {
       id: user.id,
       name: user.name || "",
       mobile: user.mobile || "",
+      email: user.email || "",
       address: user.address || "",
       active: user.active !== false
     });
@@ -771,6 +772,7 @@ export default function AdminPage() {
             <form className="master-box master-form-grid" onSubmit={saveUser}>
               <input value={userForm.name} onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))} placeholder="User name" />
               <input value={userForm.mobile} onChange={(event) => setUserForm((current) => ({ ...current, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="Mobile number" />
+              <input value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
               <input value={userForm.address} onChange={(event) => setUserForm((current) => ({ ...current, address: event.target.value }))} placeholder="Flat / address" />
               <label className="inline-check">
                 <input type="checkbox" checked={userForm.active} onChange={(event) => setUserForm((current) => ({ ...current, active: event.target.checked }))} />
@@ -793,7 +795,7 @@ export default function AdminPage() {
                   <div>
                     <strong>{user.name}</strong>
                     <span>{user.mobile}</span>
-                    <small>{user.address || "No address"}{user.active ? "" : " - inactive"}</small>
+                    <small>{user.email || "No email"} - {user.address || "No address"}{user.active ? "" : " - inactive"}</small>
                   </div>
                   <button className="secondary compact-action" type="button" onClick={() => editUser(user)}>Edit</button>
                   <button className="ghost danger-text compact-action" disabled={Boolean(pendingAction)} type="button" onClick={() => deleteUser(user.id)}>

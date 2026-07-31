@@ -94,6 +94,7 @@ export default function Home() {
   const selectedLevelBooking = selectedSlot ? getBookingForLevel(selectedSlot, stackLevel) : null;
   const sessionMobile = auth?.mobile || "";
   const sessionName = auth?.name || "";
+  const sessionEmail = auth?.email || "";
   const sessionAddress = auth?.address || "";
   const userActiveBooking = useMemo(() => {
     return locations
@@ -222,6 +223,7 @@ export default function Home() {
       bookingLevel,
       allottee: sessionName || allottee.trim(),
       mobile: sessionMobile,
+      email: sessionEmail,
       address: sessionAddress,
       location: activeLocation?.name || "",
       parkingName: activeLocation?.parkingName || activeMap?.name || "",
@@ -240,6 +242,7 @@ export default function Home() {
         body: JSON.stringify({
           allottee: bookingConfirmation.allottee,
           mobile: bookingConfirmation.mobile,
+          email: bookingConfirmation.email,
           address: bookingConfirmation.address,
           level: bookingConfirmation.bookingLevel
         })
@@ -261,6 +264,7 @@ export default function Home() {
         receiptNo: data.booking?.receiptNo,
         name: bookingConfirmation.allottee,
         mobile: bookingConfirmation.mobile,
+        email: bookingConfirmation.email,
         address: bookingConfirmation.address,
         location: bookingConfirmation.location,
         parkingName: bookingConfirmation.parkingName,
@@ -415,6 +419,7 @@ export default function Home() {
           selectedLevel={selectedLevel}
           selectedLevelBooking={selectedLevelBooking}
           sessionAddress={sessionAddress}
+          sessionEmail={sessionEmail}
           sessionMobile={sessionMobile}
           sessionName={sessionName}
           slot={selectedSlot}
@@ -472,6 +477,7 @@ function SlotBookingPopup({
   pending,
   selectedLevel,
   selectedLevelBooking,
+  sessionEmail,
   sessionMobile,
   sessionName,
   sessionAddress,
@@ -494,6 +500,7 @@ function SlotBookingPopup({
 
         <dl className="details">
           <div><dt>Phone</dt><dd>{sessionMobile}</dd></div>
+          <div><dt>Email</dt><dd>{sessionEmail || "-"}</dd></div>
           <div><dt>Name</dt><dd>{sessionName || "-"}</dd></div>
           <div><dt>Address</dt><dd>{sessionAddress || "-"}</dd></div>
           <div><dt>Level</dt><dd>{getParkingLevelLabel(selectedLevel)}</dd></div>
@@ -542,6 +549,7 @@ function BookingConfirmModal({ booking, pending, onCancel, onConfirm }) {
         <dl className="confirm-details">
           <div><dt>Name</dt><dd>{booking.allottee}</dd></div>
           <div><dt>Phone</dt><dd>{booking.mobile}</dd></div>
+          <div><dt>Email</dt><dd>{booking.email || "-"}</dd></div>
           <div><dt>Address</dt><dd>{booking.address || "-"}</dd></div>
           <div><dt>Level</dt><dd>{getParkingLevelLabel(booking.parkingLevel)}</dd></div>
           <div><dt>Map</dt><dd>{booking.map || "-"}</dd></div>
@@ -573,6 +581,7 @@ function getUserSession() {
         id: session.id || "",
         name: session.name || "",
         mobile,
+        email: session.email || "",
         address: session.address || ""
       };
     }
@@ -627,6 +636,7 @@ function downloadBookingReceipt(receipt) {
     `Receipt No: ${receipt.receiptNo || receipt.bookingId || "PENDING"}`,
     `Name: ${receipt.name}`,
     `Phone: ${receipt.mobile}`,
+    `Email: ${receipt.email || "-"}`,
     `Address: ${receipt.address || "-"}`,
     `Location: ${receipt.location}`,
     `Parking: ${receipt.parkingName || receipt.map}`,

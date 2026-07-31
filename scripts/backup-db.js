@@ -56,8 +56,8 @@ async function main() {
     insert("Location", ["id", "name", "parkingName", "city", "createdAt", "updatedAt"], locations),
     insert("Map", ["id", "locationId", "name", "filePath", "parkingLevel", "sourceType", "createdAt", "updatedAt"], maps),
     insert("ParkingSlot", ["id", "mapId", "slotNo", "zone", "type", "x", "y", "width", "height", "status", "createdAt", "updatedAt"], slots),
-    insert("UserMaster", ["id", "name", "mobile", "address", "active", "createdAt", "updatedAt"], users),
-    insert("Booking", ["id", "slotId", "userId", "receiptNo", "allottee", "mobile", "address", "level", "status", "createdAt", "updatedAt"], bookings),
+    insert("UserMaster", ["id", "name", "mobile", "email", "address", "active", "createdAt", "updatedAt"], users),
+    insert("Booking", ["id", "slotId", "userId", "receiptNo", "allottee", "mobile", "email", "address", "level", "status", "createdAt", "updatedAt"], bookings),
     insert("AppCounter", ["key", "value", "updatedAt"], counters),
     "COMMIT;"
   ].join("\n\n");

@@ -7,6 +7,7 @@ export async function PATCH(request, { params }) {
 
   if (body.name !== undefined) data.name = String(body.name || "").trim();
   if (body.mobile !== undefined) data.mobile = String(body.mobile || "").replace(/\D/g, "").slice(0, 10);
+  if (body.email !== undefined) data.email = String(body.email || "").trim();
   if (body.address !== undefined) data.address = String(body.address || "").trim();
   if (body.active !== undefined) data.active = Boolean(body.active);
 

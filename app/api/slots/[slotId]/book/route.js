@@ -77,6 +77,7 @@ export async function POST(request, { params }) {
           receiptNo,
           allottee: user.name || allottee,
           mobile,
+          email: user.email || "",
           address: user.address || address,
           level
         }
