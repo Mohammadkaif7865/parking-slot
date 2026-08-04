@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { createOtp } from "../../../../../lib/otp-store";
+import { prisma } from "../../../../../lib/prisma";
 import { getWhatsappMode, sendOtpMessage } from "../../../../../lib/whatsapp";
 
 export async function POST(request) {
   const body = await request.json();
-  const mobile = String(body.mobile || "").trim();
+  const mobile = String(body.mobile || "").replace(/\D/g, "");
 
   if (!/^[0-9]{10}$/.test(mobile)) {
     return NextResponse.json({ error: "Enter a valid 10 digit mobile number." }, { status: 400 });
+  }
+
+  const user = await prisma.userMaster.findUnique({ where: { mobile } });
+  if (!user || !user.active) {
+    return NextResponse.json({ error: "This mobile number is not registered for parking access." }, { status: 403 });
   }
 
   const otp = createOtp(mobile);
@@ -23,4 +29,3 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message || "Could not send OTP." }, { status: 500 });
   }
 }
-
