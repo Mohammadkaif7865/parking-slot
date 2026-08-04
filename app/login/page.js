@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const OTP_LOGIN_DISABLED = true;
+const OTP_LOGIN_DISABLED = false;
 
 export default function UserLoginPage() {
   const [mobile, setMobile] = useState("");
