@@ -359,6 +359,40 @@ export default function AdminPage() {
     }
   }
 
+  async function deleteLocation() {
+    if (!locationForm.id) {
+      setMessage("Select a saved location first.");
+      showToast("error", "Select a saved location first.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete this location?\n\nLocation: ${locationForm.name}\n\nAll maps, slots, and bookings under this location will also be deleted. This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setPendingAction("deleteLocation");
+    try {
+      const response = await fetch(`/api/locations/${locationForm.id}`, { method: "DELETE" });
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(data.error || "Could not delete location.");
+      }
+
+      setMessage(`${data.location.name} location deleted.`);
+      showToast("success", `${data.location.name} deleted.`);
+      setSelectedSlotId("");
+      setForm(emptySlot);
+      setLocationForm(emptyLocationForm);
+      await loadLocations("", "", "");
+    } catch (error) {
+      setMessage(`Could not delete location: ${error.message}`);
+      showToast("error", `Could not delete location: ${error.message}`);
+    } finally {
+      setPendingAction("");
+    }
+  }
+
   async function saveMapTitle(event) {
     event.preventDefault();
     if (!activeMap) return;
@@ -873,6 +907,9 @@ export default function AdminPage() {
               <input value={locationForm.city} onChange={(event) => setLocationForm((current) => ({ ...current, city: event.target.value }))} placeholder="City / area" />
               <button className="secondary" disabled={Boolean(pendingAction)} type="submit">
                 {pendingAction === "saveLocation" ? "Saving..." : locationForm.id ? "Save Location" : "Create Location"}
+              </button>
+              <button className="ghost danger-text" disabled={!locationForm.id || Boolean(pendingAction)} type="button" onClick={deleteLocation}>
+                {pendingAction === "deleteLocation" ? "Deleting..." : "Delete Location"}
               </button>
             </form>
           </div>

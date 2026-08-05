@@ -1149,11 +1149,10 @@ label {
 }
 
 .level-stats dt {
-  overflow: hidden;
   font-size: 11px;
   text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .level-stats dd {

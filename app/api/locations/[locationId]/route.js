@@ -22,3 +22,12 @@ export async function PATCH(request, { params }) {
   await broadcastRealtime("map:changed", { locationId: location.id, action: "location-updated" });
   return NextResponse.json({ location });
 }
+
+export async function DELETE(_request, { params }) {
+  const location = await prisma.location.delete({
+    where: { id: params.locationId }
+  });
+
+  await broadcastRealtime("map:changed", { locationId: location.id, action: "location-deleted" });
+  return NextResponse.json({ location });
+}
