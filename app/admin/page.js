@@ -628,6 +628,18 @@ export default function AdminPage() {
     }
   }
 
+  function exportReport(type) {
+    const report = buildReport(type, locations, users);
+    if (!report.rows.length) {
+      showToast("error", "No report data available.");
+      return;
+    }
+
+    downloadExcelReport(report.filename, report.title, report.rows);
+    setMessage(`${report.title} exported.`);
+    showToast("success", `${report.title} exported.`);
+  }
+
   if (!authorized) {
     return <main className="auth-page"><p>Redirecting...</p></main>;
   }
@@ -652,6 +664,7 @@ export default function AdminPage() {
         <button className={adminTab === "maps" ? "active" : ""} type="button" onClick={() => setAdminTab("maps")}>Map Manager</button>
         <button className={adminTab === "users" ? "active" : ""} type="button" onClick={() => setAdminTab("users")}>User Master</button>
         <button className={adminTab === "locations" ? "active" : ""} type="button" onClick={() => setAdminTab("locations")}>Location Master</button>
+        <button className={adminTab === "reports" ? "active" : ""} type="button" onClick={() => setAdminTab("reports")}>Reports</button>
       </nav>
 
       {adminTab === "maps" && (
@@ -945,9 +958,229 @@ export default function AdminPage() {
           </div>
         </section>
       )}
+
+      {adminTab === "reports" && (
+        <section className="master-panel">
+          <div className="master-card">
+            <div className="master-card-head">
+              <div>
+                <p className="section-label">Reports</p>
+                <h2>Excel Reports</h2>
+              </div>
+            </div>
+            <div className="report-grid">
+              {[
+                {
+                  title: "User Booking Listing",
+                  description: "All registered users with their active booked slot, or No Booking.",
+                  action: () => exportReport("user-booking-listing")
+                },
+                {
+                  title: "All Parking Slots",
+                  description: "Every slot and stack position with current status.",
+                  action: () => exportReport("all-parking-slots")
+                },
+                {
+                  title: "User Report",
+                  description: "User personal details with active booking information.",
+                  action: () => exportReport("user-report")
+                },
+                {
+                  title: "Booked Slots",
+                  description: "Only booked slots with user and booking details.",
+                  action: () => exportReport("booked-slots")
+                },
+                {
+                  title: "Unbooked Slots",
+                  description: "All slot positions without booking, including availability status.",
+                  action: () => exportReport("unbooked-slots")
+                }
+              ].map((report) => (
+                <article className="report-card" key={report.title}>
+                  <div>
+                    <strong>{report.title}</strong>
+                    <p>{report.description}</p>
+                  </div>
+                  <button className="secondary" type="button" onClick={report.action}>Export Excel</button>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       <Toast toast={toast} onClose={() => setToast(null)} />
     </main>
   );
+}
+
+function buildReport(type, locations, users) {
+  const slotRows = getReportSlotRows(locations);
+  const activeBookings = slotRows.filter((row) => row.bookingStatus === "Booked");
+  const bookingByMobile = new Map(activeBookings.map((row) => [row.mobile, row]));
+
+  if (type === "user-booking-listing") {
+    return {
+      title: "User Booking Listing",
+      filename: "user-booking-listing.xls",
+      rows: users.map((user) => {
+        const booking = bookingByMobile.get(user.mobile);
+        return {
+          Name: user.name || "",
+          Mobile: user.mobile || "",
+          Email: user.email || "",
+          "Address / Flat": user.address || "",
+          "User Status": user.active === false ? "Inactive" : "Active",
+          "Booking Status": booking ? "Booked" : "No Booking",
+          "Slot No": booking?.slotNo || "No Booking",
+          Location: booking?.location || "",
+          Parking: booking?.parkingName || "",
+          Level: booking?.parkingLevel || "",
+          "Stack Position": booking?.stackPosition || "",
+          "Receipt No": booking?.receiptNo || "",
+          "Booked At": booking?.bookedAt || ""
+        };
+      })
+    };
+  }
+
+  if (type === "all-parking-slots") {
+    return {
+      title: "All Parking Slots",
+      filename: "all-parking-slots.xls",
+      rows: slotRows.map(slotReportRow)
+    };
+  }
+
+  if (type === "user-report") {
+    return {
+      title: "User Report With Booking Info",
+      filename: "user-report-with-booking-info.xls",
+      rows: users.map((user) => {
+        const booking = bookingByMobile.get(user.mobile);
+        return {
+          Name: user.name || "",
+          Mobile: user.mobile || "",
+          Email: user.email || "",
+          "Address / Flat": user.address || "",
+          "Login Access": user.active === false ? "Inactive" : "Active",
+          "Booking Status": booking ? "Booked" : "No Booking",
+          "Receipt No": booking?.receiptNo || "",
+          Location: booking?.location || "",
+          Parking: booking?.parkingName || "",
+          Level: booking?.parkingLevel || "",
+          "Slot No": booking?.slotNo || "",
+          "Parking Type": booking?.type || "",
+          Zone: booking?.zone || "",
+          "Stack Position": booking?.stackPosition || "",
+          "Booked At": booking?.bookedAt || ""
+        };
+      })
+    };
+  }
+
+  if (type === "booked-slots") {
+    return {
+      title: "Booked Slots Report",
+      filename: "booked-slots-report.xls",
+      rows: activeBookings.map(slotReportRow)
+    };
+  }
+
+  return {
+    title: "Unbooked Slots Report",
+    filename: "unbooked-slots-report.xls",
+    rows: slotRows.filter((row) => row.bookingStatus !== "Booked").map(slotReportRow)
+  };
+}
+
+function getReportSlotRows(locations) {
+  return (locations || []).flatMap((location) => (
+    (location.maps || []).flatMap((map) => (
+      (map.slots || []).flatMap((slot) => (
+        getSlotDisplayNumbers(slot).map((display) => {
+          const booking = getBookingForLevel(slot, display.level);
+          const isBlocked = slot.status === "reserved" || slot.status === "maintenance";
+          return {
+            location: location.name || "",
+            city: location.city || "",
+            parkingName: location.parkingName || map.name || "",
+            mapName: map.name || "",
+            parkingLevel: getParkingLevelLabel(map.parkingLevel || 1),
+            physicalSlotNo: slot.slotNo || "",
+            slotNo: display.slotNo || slot.slotNo || "",
+            zone: slot.zone || "",
+            type: slot.type || "Regular",
+            stackPosition: display.level || "Single",
+            slotStatus: isBlocked ? titleCase(slot.status) : "Available",
+            bookingStatus: booking ? "Booked" : isBlocked ? titleCase(slot.status) : "Unbooked",
+            receiptNo: booking?.receiptNo || "",
+            userName: booking?.allottee || "",
+            mobile: booking?.mobile || "",
+            email: booking?.email || "",
+            address: booking?.address || "",
+            bookedAt: booking?.createdAt ? formatDateTime(booking.createdAt) : ""
+          };
+        })
+      ))
+    ))
+  ));
+}
+
+function slotReportRow(row) {
+  return {
+    Location: row.location,
+    City: row.city,
+    Parking: row.parkingName,
+    Map: row.mapName,
+    Level: row.parkingLevel,
+    "Slot No": row.slotNo,
+    "Physical Slot": row.physicalSlotNo,
+    Zone: row.zone,
+    "Parking Type": row.type,
+    "Stack Position": row.stackPosition,
+    "Slot Status": row.slotStatus,
+    "Booking Status": row.bookingStatus,
+    "Receipt No": row.receiptNo,
+    "Booked By": row.userName,
+    Mobile: row.mobile,
+    Email: row.email,
+    "Address / Flat": row.address,
+    "Booked At": row.bookedAt
+  };
+}
+
+function downloadExcelReport(filename, title, rows) {
+  const columns = Object.keys(rows[0] || {});
+  const table = [
+    "<table>",
+    `<tr><th colspan="${columns.length}">${escapeHtml(title)}</th></tr>`,
+    `<tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>`,
+    ...rows.map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}</tr>`),
+    "</table>"
+  ].join("");
+  const html = `<!doctype html><html><head><meta charset="utf-8" /></head><body>${table}</body></html>`;
+  const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function titleCase(value) {
+  const text = String(value || "");
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
 }
 
 function slotToForm(slot) {
