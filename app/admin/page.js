@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import * as XLSX from "xlsx";
 import Toast from "../components/Toast";
 import { getParkingLevelLabel, getParkingLevelShortLabel } from "../../lib/parking-labels";
 import { getNextSlotNumber, getSlotCapacity, getSlotDisplayNumbers, getSlotLevelNames, getStackMapDisplayNumbers, getTierSlotNo } from "../../lib/slot-naming";
@@ -1021,7 +1022,7 @@ function buildReport(type, locations, users) {
   if (type === "user-booking-listing") {
     return {
       title: "User Booking Listing",
-      filename: "user-booking-listing.xls",
+      filename: "user-booking-listing.xlsx",
       rows: users.map((user) => {
         const booking = bookingByMobile.get(user.mobile);
         return {
@@ -1046,7 +1047,7 @@ function buildReport(type, locations, users) {
   if (type === "all-parking-slots") {
     return {
       title: "All Parking Slots",
-      filename: "all-parking-slots.xls",
+      filename: "all-parking-slots.xlsx",
       rows: slotRows.map(slotReportRow)
     };
   }
@@ -1054,7 +1055,7 @@ function buildReport(type, locations, users) {
   if (type === "user-report") {
     return {
       title: "User Report With Booking Info",
-      filename: "user-report-with-booking-info.xls",
+      filename: "user-report-with-booking-info.xlsx",
       rows: users.map((user) => {
         const booking = bookingByMobile.get(user.mobile);
         return {
@@ -1081,14 +1082,14 @@ function buildReport(type, locations, users) {
   if (type === "booked-slots") {
     return {
       title: "Booked Slots Report",
-      filename: "booked-slots-report.xls",
+      filename: "booked-slots-report.xlsx",
       rows: activeBookings.map(slotReportRow)
     };
   }
 
   return {
     title: "Unbooked Slots Report",
-    filename: "unbooked-slots-report.xls",
+    filename: "unbooked-slots-report.xlsx",
     rows: slotRows.filter((row) => row.bookingStatus !== "Booked").map(slotReportRow)
   };
 }
@@ -1150,37 +1151,19 @@ function slotReportRow(row) {
 }
 
 function downloadExcelReport(filename, title, rows) {
-  const columns = Object.keys(rows[0] || {});
-  const table = [
-    "<table>",
-    `<tr><th colspan="${columns.length}">${escapeHtml(title)}</th></tr>`,
-    `<tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr>`,
-    ...rows.map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}</tr>`),
-    "</table>"
-  ].join("");
-  const html = `<!doctype html><html><head><meta charset="utf-8" /></head><body>${table}</body></html>`;
-  const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, sanitizeSheetName(title));
+  XLSX.writeFile(workbook, filename, { compression: true });
 }
 
 function titleCase(value) {
   const text = String(value || "");
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
+}
+
+function sanitizeSheetName(value) {
+  return String(value || "Report").replace(/[\\/?*[\]:]/g, " ").slice(0, 31) || "Report";
 }
 
 function slotToForm(slot) {
