@@ -908,9 +908,10 @@ export default function AdminPage() {
               <button className="secondary" disabled={Boolean(pendingAction)} type="submit">
                 {pendingAction === "saveLocation" ? "Saving..." : locationForm.id ? "Save Location" : "Create Location"}
               </button>
-              <button className="ghost danger-text" disabled={!locationForm.id || Boolean(pendingAction)} type="button" onClick={deleteLocation}>
+              {/* Location delete is temporarily hidden. Keep the handler/API for future re-enable. */}
+              {/* <button className="ghost danger-text" disabled={!locationForm.id || Boolean(pendingAction)} type="button" onClick={deleteLocation}>
                 {pendingAction === "deleteLocation" ? "Deleting..." : "Delete Location"}
-              </button>
+              </button> */}
             </form>
           </div>
 
