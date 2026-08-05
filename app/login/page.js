@@ -10,6 +10,7 @@ export default function UserLoginPage() {
   const [demoOtp, setDemoOtp] = useState("");
   const [step, setStep] = useState("mobile");
   const [pending, setPending] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
   const [message, setMessage] = useState(
     OTP_LOGIN_DISABLED ? "OTP is temporarily disabled. Enter mobile number to continue." : "Login with mobile OTP."
   );
@@ -29,13 +30,13 @@ export default function UserLoginPage() {
       });
       const data = await response.json();
       if (!response.ok) {
-        setMessage(data.error || "Login failed.");
+        showLoginAlert(data.error || "Login failed.");
         return;
       }
       localStorage.setItem("parking-auth", JSON.stringify(data.user));
       window.location.href = "/";
     } catch (error) {
-      setMessage(`Login failed: ${error.message}`);
+      showLoginAlert(`Login failed: ${error.message}`);
     } finally {
       setPending(false);
     }
@@ -53,14 +54,14 @@ export default function UserLoginPage() {
       });
       const data = await response.json();
       if (!response.ok) {
-        setMessage(data.error || "Could not send OTP.");
+        showLoginAlert(data.error || "Could not send OTP.");
         return;
       }
       setDemoOtp(data.demoOtp || "");
       setStep("otp");
       setMessage(data.message || "OTP sent.");
     } catch (error) {
-      setMessage(`Could not send OTP: ${error.message}`);
+      showLoginAlert(`Could not send OTP: ${error.message}`);
     } finally {
       setPending(false);
     }
@@ -77,16 +78,21 @@ export default function UserLoginPage() {
       });
       const data = await response.json();
       if (!response.ok) {
-        setMessage(data.error || "OTP verification failed.");
+        showLoginAlert(data.error || "OTP verification failed.");
         return;
       }
       localStorage.setItem("parking-auth", JSON.stringify(data.user));
       window.location.href = "/";
     } catch (error) {
-      setMessage(`OTP verification failed: ${error.message}`);
+      showLoginAlert(`OTP verification failed: ${error.message}`);
     } finally {
       setPending(false);
     }
+  }
+
+  function showLoginAlert(text) {
+    setMessage(text);
+    setAlertMessage(text);
   }
 
   return (
@@ -120,6 +126,16 @@ export default function UserLoginPage() {
         <p className="message">{message}</p>
         <p className="message"><a href="/admin/login">Admin login</a></p>
       </form>
+      {alertMessage && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setAlertMessage("")}>
+          <section className="login-alert-modal" role="alertdialog" aria-modal="true" aria-labelledby="login-alert-title" onClick={(event) => event.stopPropagation()}>
+            <p className="section-label">Login Access</p>
+            <h2 id="login-alert-title">Could Not Continue</h2>
+            <p>{alertMessage}</p>
+            <button className="primary" type="button" onClick={() => setAlertMessage("")}>Okay</button>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

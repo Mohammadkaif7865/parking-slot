@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Toast from "./components/Toast";
 import { getParkingLevelLabel, getParkingLevelShortLabel } from "../lib/parking-labels";
+import { getSlotDisplayNumbers, getStackMapDisplayNumbers, getTierSlotNo } from "../lib/slot-naming";
 
 export default function Home() {
   const [auth, setAuth] = useState(null);
@@ -459,6 +460,7 @@ export default function Home() {
 
 function SlotMarker({ slot, selected, onSelect }) {
   const displayNumbers = getSlotDisplayNumbers(slot);
+  const mapDisplayNumbers = getStackMapDisplayNumbers(slot);
   const isStack = displayNumbers.length > 1;
 
   return (
@@ -471,7 +473,7 @@ function SlotMarker({ slot, selected, onSelect }) {
     >
       {isStack ? (
         <span className="stack-flags">
-          {displayNumbers.map((item) => (
+          {mapDisplayNumbers.map((item) => (
             <span className={`stack-flag ${item.booked ? "booked" : "available"}`} key={item.level}>
               {item.slotNo}
             </span>
@@ -608,32 +610,6 @@ function getUserSession() {
     return null;
   }
   return null;
-}
-
-function getSlotDisplayNumbers(slot) {
-  const levels = slot?.levels?.length ? slot.levels : ["Single"];
-  const base = parseSlotNumber(slot?.slotNo);
-
-  return levels.map((level, index) => ({
-    level,
-    slotNo: base ? `${base.prefix}${String(base.number + index).padStart(base.width, "0")}` : slot?.slotNo || "",
-    booked: slot?.bookedLevels?.includes(level)
-  }));
-}
-
-function getTierSlotNo(slot, level) {
-  const item = getSlotDisplayNumbers(slot).find((entry) => entry.level === level);
-  return item?.slotNo || slot?.slotNo || "";
-}
-
-function parseSlotNumber(slotNo) {
-  const match = String(slotNo || "").match(/^(.*?)(\d+)$/);
-  if (!match) return null;
-  return {
-    prefix: match[1],
-    number: Number(match[2]),
-    width: match[2].length
-  };
 }
 
 function getBookingForLevel(slot, level) {

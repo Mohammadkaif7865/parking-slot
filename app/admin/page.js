@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Toast from "../components/Toast";
 import { getParkingLevelLabel, getParkingLevelShortLabel } from "../../lib/parking-labels";
+import { getNextSlotNumber, getSlotDisplayNumbers, getSlotLevelNames, getStackMapDisplayNumbers, getTierSlotNo } from "../../lib/slot-naming";
 
 const emptySlot = {
   id: "",
@@ -919,6 +920,7 @@ function SlotMarker({ display, occupancyStatus, onClick, selected, slot, style }
     levels: getSlotLevelNames(display.type)
   };
   const displayNumbers = getSlotDisplayNumbers(previewSlot);
+  const mapDisplayNumbers = getStackMapDisplayNumbers(previewSlot);
   const isStack = displayNumbers.length > 1;
 
   return (
@@ -930,7 +932,7 @@ function SlotMarker({ display, occupancyStatus, onClick, selected, slot, style }
     >
       {isStack ? (
         <span className="stack-flags">
-          {displayNumbers.map((item) => (
+          {mapDisplayNumbers.map((item) => (
             <span className={`stack-flag ${item.booked ? "booked" : "available"}`} key={item.level}>
               {item.slotNo}
             </span>
@@ -982,62 +984,6 @@ function isPdfMap(file) {
 function displayMapSource(file) {
   const value = String(file || "");
   return value.startsWith("data:") || value.includes("/api/maps/") ? "Uploaded image" : value;
-}
-
-function getNextSlotNumber(map) {
-  const parkingLevel = map?.parkingLevel || 1;
-  const prefix = `L${parkingLevel}P`;
-  const highestNumber = (map?.slots || []).reduce((highest, slot) => {
-    const parsed = parseSlotNumber(slot.slotNo);
-    if (!parsed) return highest;
-    return Math.max(highest, parsed.number + getSlotCapacity(slot) - 1);
-  }, 0);
-  let next = highestNumber + 1;
-  let candidate = `${prefix}${String(next).padStart(3, "0")}`;
-  const existing = new Set((map?.slots || []).map((slot) => slot.slotNo));
-
-  while (existing.has(candidate)) {
-    next += 1;
-    candidate = `${prefix}${String(next).padStart(3, "0")}`;
-  }
-
-  return candidate;
-}
-
-function getSlotDisplayNumbers(slot) {
-  const levels = slot?.levels?.length ? slot.levels : getSlotLevelNames(slot?.type);
-  const base = parseSlotNumber(slot?.slotNo);
-
-  return levels.map((level, index) => ({
-    level,
-    slotNo: base ? `${base.prefix}${String(base.number + index).padStart(base.width, "0")}` : slot?.slotNo || "",
-    booked: slot?.bookedLevels?.includes(level)
-  }));
-}
-
-function getTierSlotNo(slot, level) {
-  const item = getSlotDisplayNumbers(slot).find((entry) => entry.level === level);
-  return item?.slotNo || slot?.slotNo || "";
-}
-
-function getSlotCapacity(slot) {
-  return getSlotLevelNames(slot?.type).length;
-}
-
-function getSlotLevelNames(type = "") {
-  if (String(type).includes("3")) return ["Top", "Middle", "Bottom"];
-  if (String(type).includes("2")) return ["Top", "Bottom"];
-  return ["Single"];
-}
-
-function parseSlotNumber(slotNo) {
-  const match = String(slotNo || "").match(/^(.*?)(\d+)$/);
-  if (!match) return null;
-  return {
-    prefix: match[1],
-    number: Number(match[2]),
-    width: match[2].length
-  };
 }
 
 function getBookingForLevel(slot, level) {
