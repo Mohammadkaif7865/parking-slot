@@ -172,7 +172,9 @@ export default function Home() {
           Regular: { capacity: 0, available: 0 },
           Stack: { capacity: 0, available: 0 },
           Surface: { capacity: 0, available: 0 }
-        }
+        },
+        carAvailable: 0,
+        surfaceAvailable: 0
       };
 
       current.maps += 1;
@@ -187,6 +189,11 @@ export default function Home() {
         current.bookedCapacity += booked;
         current.typeAvailability[typeKey].capacity += capacity;
         current.typeAvailability[typeKey].available += available;
+        if (typeKey === "Surface") {
+          current.surfaceAvailable += available;
+        } else {
+          current.carAvailable += available;
+        }
 
         if (status === "reserved" || status === "maintenance") {
           current.unavailable += capacity;
@@ -361,14 +368,9 @@ export default function Home() {
                   <button className="level-button" key={level} onClick={() => selectLevel(level)}>
                     <span>{parkingName}</span>
                     <small>{getParkingLevelLabel(level)}</small>
-                    <dl className="level-stats type-stats">
-                      <div><dt>Total Capacity</dt><dd>{levelStats[level]?.totalCapacity || 0}</dd></div>
-                      {Object.entries(levelStats[level]?.typeAvailability || {}).map(([type, item]) => (
-                        <div key={type}>
-                          <dt>{type}</dt>
-                          <dd>{item.available}/{item.capacity}</dd>
-                        </div>
-                      ))}
+                    <dl className="level-stats simple-availability">
+                      <div><dt>Car Parking</dt><dd>{levelStats[level]?.carAvailable || 0}</dd></div>
+                      <div><dt>Surface Parking</dt><dd>{levelStats[level]?.surfaceAvailable || 0}</dd></div>
                     </dl>
                   </button>
                 );
