@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Toast from "./components/Toast";
 import { getParkingLevelLabel, getParkingLevelShortLabel } from "../lib/parking-labels";
-import { getSlotDisplayNumbers, getStackMapDisplayNumbers, getTierSlotNo } from "../lib/slot-naming";
+import { getSlotDisplayNumbers, getStackMapDisplayNumbers, getTierSlotNo, isSurfaceParkingType } from "../lib/slot-naming";
 
 const PARKING_DISCLAIMER = [
   "The selected parking space is final and cannot be changed after confirmation.",
@@ -167,7 +167,12 @@ export default function Home() {
         availableCapacity: 0,
         bookedCapacity: 0,
         partialSlots: 0,
-        unavailable: 0
+        unavailable: 0,
+        typeAvailability: {
+          Regular: { capacity: 0, available: 0 },
+          Stack: { capacity: 0, available: 0 },
+          Surface: { capacity: 0, available: 0 }
+        }
       };
 
       current.maps += 1;
@@ -175,14 +180,18 @@ export default function Home() {
         const status = slot.occupancyStatus || slot.status || "available";
         const capacity = Math.max(1, slot.levels?.length || 1);
         const booked = Math.min(capacity, slot.bookedLevels?.length || 0);
+        const available = status === "reserved" || status === "maintenance" ? 0 : Math.max(0, capacity - booked);
+        const typeKey = getParkingTypeGroup(slot);
         current.physicalSlots += 1;
         current.totalCapacity += capacity;
         current.bookedCapacity += booked;
+        current.typeAvailability[typeKey].capacity += capacity;
+        current.typeAvailability[typeKey].available += available;
 
         if (status === "reserved" || status === "maintenance") {
           current.unavailable += capacity;
         } else {
-          current.availableCapacity += Math.max(0, capacity - booked);
+          current.availableCapacity += available;
         }
 
         if (status === "partial") current.partialSlots += 1;
@@ -352,11 +361,14 @@ export default function Home() {
                   <button className="level-button" key={level} onClick={() => selectLevel(level)}>
                     <span>{parkingName}</span>
                     <small>{getParkingLevelLabel(level)}</small>
-                    <em>{levelStats[level]?.maps || 0} map - {levelStats[level]?.physicalSlots || 0} slots</em>
-                    <dl className="level-stats">
-                      <div><dt>Capacity</dt><dd>{levelStats[level]?.totalCapacity || 0}</dd></div>
-                      <div><dt>Empty</dt><dd>{levelStats[level]?.availableCapacity || 0}</dd></div>
-                      <div><dt>Booked</dt><dd>{levelStats[level]?.bookedCapacity || 0}</dd></div>
+                    <dl className="level-stats type-stats">
+                      <div><dt>Total Capacity</dt><dd>{levelStats[level]?.totalCapacity || 0}</dd></div>
+                      {Object.entries(levelStats[level]?.typeAvailability || {}).map(([type, item]) => (
+                        <div key={type}>
+                          <dt>{type}</dt>
+                          <dd>{item.available}/{item.capacity}</dd>
+                        </div>
+                      ))}
                     </dl>
                   </button>
                 );
@@ -468,6 +480,12 @@ export default function Home() {
       )}
     </main>
   );
+}
+
+function getParkingTypeGroup(slot) {
+  if (isSurfaceParkingType(slot?.type)) return "Surface";
+  if ((slot?.levels?.length || 0) > 1 || String(slot?.type || "").includes("Stack")) return "Stack";
+  return "Regular";
 }
 
 function BrandHeading({ eyebrow, title }) {

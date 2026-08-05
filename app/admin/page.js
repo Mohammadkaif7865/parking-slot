@@ -223,7 +223,7 @@ export default function AdminPage() {
 
     const nextSlot = {
       ...emptySlot,
-      slotNo: getNextSlotNumber(activeMap),
+      slotNo: getNextSlotNumber(activeMap, emptySlot.type),
       zone: getParkingLevelLabel(activeMap.parkingLevel || 1),
       x: 12,
       y: 12
@@ -236,7 +236,13 @@ export default function AdminPage() {
   }
 
   function updateForm(field, value) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => {
+      const next = { ...current, [field]: value };
+      if (field === "type" && activeMap && selectedSlotId === draftSlotId && !current.id) {
+        next.slotNo = getNextSlotNumber(activeMap, value);
+      }
+      return next;
+    });
   }
 
   function editUser(user) {
@@ -749,6 +755,7 @@ export default function AdminPage() {
             Type
             <select value={form.type} disabled={selectedSlotHasBookings} onChange={(event) => updateForm("type", event.target.value)}>
               <option>Regular</option>
+              <option>Surface Parking</option>
               <option>Stack 2-tier</option>
               <option>Stack 3-tier</option>
             </select>
