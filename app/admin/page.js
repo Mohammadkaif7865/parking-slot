@@ -33,6 +33,8 @@ export default function AdminPage() {
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [form, setForm] = useState(emptySlot);
   const [userForm, setUserForm] = useState(emptyUserForm);
+  const [userSearch, setUserSearch] = useState("");
+  const [userPage, setUserPage] = useState(1);
   const [locationForm, setLocationForm] = useState(emptyLocationForm);
   const [mapTitle, setMapTitle] = useState("");
   const [mapName, setMapName] = useState("");
@@ -185,6 +187,24 @@ export default function AdminPage() {
       return current;
     }, { total: 0, available: 0, booked: 0 });
   }, [activeMap]);
+  const filteredUsers = useMemo(() => {
+    const query = userSearch.trim().toLowerCase();
+    if (!query) return users;
+    return users.filter((user) => [
+      user.name,
+      user.mobile,
+      user.email,
+      user.address
+    ].some((value) => String(value || "").toLowerCase().includes(query)));
+  }, [users, userSearch]);
+  const userPageSize = 10;
+  const userPageCount = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
+  const pagedUsers = filteredUsers.slice((Math.min(userPage, userPageCount) - 1) * userPageSize, Math.min(userPage, userPageCount) * userPageSize);
+  const activeBookingRows = useMemo(() => getReportSlotRows(locations).filter((row) => row.bookingStatus === "Booked"), [locations]);
+
+  useEffect(() => {
+    setUserPage(1);
+  }, [userSearch]);
 
   function selectLocation(nextLocationId) {
     const nextLocation = locations.find((location) => location.id === nextLocationId);
@@ -519,16 +539,15 @@ export default function AdminPage() {
     }
   }
 
-  async function releaseBooking(level) {
-    if (!selectedSlot) {
-      setMessage("Select a booked slot first.");
-      showToast("error", "Select a booked slot first.");
-      return;
-    }
+  async function releaseBooking(slotId, level, slotNo) {
+    if (!slotId || !level) return;
 
-    setPendingAction(`release-${level}`);
+    const confirmed = window.confirm(`Release booking for ${slotNo || "this slot"}?`);
+    if (!confirmed) return;
+
+    setPendingAction(`release-${slotId}-${level}`);
     try {
-      const response = await fetch(`/api/slots/${selectedSlot.id}/release`, {
+      const response = await fetch(`/api/slots/${slotId}/release`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ level, admin: true })
@@ -541,10 +560,9 @@ export default function AdminPage() {
         return;
       }
 
-      const releasedSlotNo = getTierSlotNo(selectedSlot, level);
-      setMessage(`${releasedSlotNo} released.`);
-      showToast("success", `${releasedSlotNo} released.`);
-      await loadLocations(locationId, mapId, selectedSlot.id);
+      setMessage(`${slotNo || "Booking"} released.`);
+      showToast("success", `${slotNo || "Booking"} released.`);
+      await loadLocations(locationId, mapId, selectedSlotId);
     } catch (error) {
       setMessage(`Could not release booking: ${error.message}`);
       showToast("error", `Could not release booking: ${error.message}`);
@@ -664,6 +682,7 @@ export default function AdminPage() {
       <nav className="admin-tabs" aria-label="Admin sections">
         <button className={adminTab === "maps" ? "active" : ""} type="button" onClick={() => setAdminTab("maps")}>Map Manager</button>
         <button className={adminTab === "users" ? "active" : ""} type="button" onClick={() => setAdminTab("users")}>User Master</button>
+        <button className={adminTab === "bookings" ? "active" : ""} type="button" onClick={() => setAdminTab("bookings")}>Bookings</button>
         <button className={adminTab === "locations" ? "active" : ""} type="button" onClick={() => setAdminTab("locations")}>Location Master</button>
         <button className={adminTab === "reports" ? "active" : ""} type="button" onClick={() => setAdminTab("reports")}>Reports</button>
       </nav>
@@ -825,11 +844,6 @@ export default function AdminPage() {
                     <strong>{getTierSlotNo(selectedSlot, level)}</strong>
                     <span>{booking ? booking.allottee || "Booked" : "Empty"}</span>
                     <small>{booking ? `${booking.mobile || ""}${booking.createdAt ? ` - ${formatDateTime(booking.createdAt)}` : ""}` : ""}</small>
-                    {booking && (
-                      <button className="ghost compact-action danger-text" type="button" disabled={Boolean(pendingAction)} onClick={() => releaseBooking(level)}>
-                        {pendingAction === `release-${level}` ? "Releasing..." : "Release"}
-                      </button>
-                    )}
                   </div>
                 );
               })}
@@ -877,9 +891,15 @@ export default function AdminPage() {
           </div>
 
           <div className="master-card">
-            <p className="section-label">Registered Users</p>
+            <div className="master-card-head">
+              <div>
+                <p className="section-label">Registered Users</p>
+                <h2>{filteredUsers.length} Users</h2>
+              </div>
+              <input className="search-input" value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="Search name, mobile, email, flat" />
+            </div>
             <div className="user-master-table">
-              {users.map((user) => (
+              {pagedUsers.map((user) => (
                 <article className={`user-master-row ${user.active ? "" : "inactive"}`} key={user.id}>
                   <div>
                     <strong>{user.name}</strong>
@@ -892,7 +912,53 @@ export default function AdminPage() {
                   </button>
                 </article>
               ))}
-              {!users.length && <p className="empty">No users added yet.</p>}
+              {!pagedUsers.length && <p className="empty">No users found.</p>}
+            </div>
+            <div className="pagination-bar">
+              <span>Page {Math.min(userPage, userPageCount)} of {userPageCount}</span>
+              <div>
+                <button className="ghost compact-action" type="button" disabled={userPage <= 1} onClick={() => setUserPage((page) => Math.max(1, page - 1))}>Prev</button>
+                <button className="ghost compact-action" type="button" disabled={userPage >= userPageCount} onClick={() => setUserPage((page) => Math.min(userPageCount, page + 1))}>Next</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {adminTab === "bookings" && (
+        <section className="master-panel">
+          <div className="master-card">
+            <div className="master-card-head">
+              <div>
+                <p className="section-label">Bookings</p>
+                <h2>{activeBookingRows.length} Active Bookings</h2>
+              </div>
+            </div>
+            <div className="booking-table">
+              {activeBookingRows.map((booking) => (
+                <article className="booking-row" key={`${booking.slotId}-${booking.stackLevel}`}>
+                  <div>
+                    <strong>{booking.slotNo}</strong>
+                    <span>{booking.userName || "Booked User"} - {booking.mobile || "No mobile"}</span>
+                    <small>{booking.email || "No email"} - {booking.address || "No address"}</small>
+                  </div>
+                  <div>
+                    <span>{booking.location}</span>
+                    <small>{booking.parkingLevel} - {booking.parkingName}</small>
+                  </div>
+                  <div>
+                    <span>{booking.type}</span>
+                    <small>{booking.stackPosition} - {booking.receiptNo || "No receipt"}</small>
+                  </div>
+                  <div>
+                    <span>{booking.bookedAt || "-"}</span>
+                    <button className="ghost danger-text compact-action" type="button" disabled={Boolean(pendingAction)} onClick={() => releaseBooking(booking.slotId, booking.stackLevel, booking.slotNo)}>
+                      {pendingAction === `release-${booking.slotId}-${booking.stackLevel}` ? "Releasing..." : "Release"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+              {!activeBookingRows.length && <p className="empty">No active bookings found.</p>}
             </div>
           </div>
         </section>
@@ -1107,10 +1173,12 @@ function getReportSlotRows(locations) {
             parkingName: location.parkingName || map.name || "",
             mapName: map.name || "",
             parkingLevel: getParkingLevelLabel(map.parkingLevel || 1),
+            slotId: slot.id,
             physicalSlotNo: slot.slotNo || "",
             slotNo: display.slotNo || slot.slotNo || "",
             zone: slot.zone || "",
             type: slot.type || "Regular",
+            stackLevel: display.level || "Single",
             stackPosition: display.level || "Single",
             slotStatus: isBlocked ? titleCase(slot.status) : "Available",
             bookingStatus: booking ? "Booked" : isBlocked ? titleCase(slot.status) : "Unbooked",

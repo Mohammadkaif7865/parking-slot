@@ -205,6 +205,10 @@ h2 {
   flex: 0 0 auto;
 }
 
+.search-input {
+  width: min(380px, 100%);
+}
+
 .master-form-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
@@ -216,6 +220,21 @@ h2 {
 
 .user-master-table {
   display: grid;
+  gap: 8px;
+}
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pagination-bar > div {
+  display: flex;
   gap: 8px;
 }
 
@@ -258,6 +277,51 @@ h2 {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
   margin-top: 14px;
+}
+
+.booking-table {
+  display: grid;
+  gap: 8px;
+}
+
+.booking-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) minmax(160px, 1fr) minmax(140px, 0.8fr) minmax(150px, 0.9fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffaf6;
+}
+
+.booking-row > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.booking-row strong,
+.booking-row span,
+.booking-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.booking-row strong {
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.booking-row span {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.booking-row small {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .report-grid {
@@ -1422,6 +1486,10 @@ label {
   }
 
   .user-master-row {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-row {
     grid-template-columns: 1fr;
   }
 
