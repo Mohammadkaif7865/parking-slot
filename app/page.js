@@ -6,6 +6,14 @@ import Toast from "./components/Toast";
 import { getParkingLevelLabel, getParkingLevelShortLabel } from "../lib/parking-labels";
 import { getSlotDisplayNumbers, getStackMapDisplayNumbers, getTierSlotNo } from "../lib/slot-naming";
 
+const PARKING_DISCLAIMER = [
+  "The selected parking space is final and cannot be changed after confirmation.",
+  "The parking selection process is fair, transparent, and based solely on availability. No preferential allotment is provided by the Developer.",
+  "No exchange, transfer, or swapping of parking spaces will be permitted by the Developer.",
+  "All allottees are required to cooperate during maintenance or operational activities related to the parking area.",
+  "The Developer's decision regarding the parking allotment process shall be final and binding."
+];
+
 export default function Home() {
   const [auth, setAuth] = useState(null);
   const [locations, setLocations] = useState([]);
@@ -20,6 +28,7 @@ export default function Home() {
   const [pendingAction, setPendingAction] = useState("");
   const [toast, setToast] = useState(null);
   const [bookingConfirmation, setBookingConfirmation] = useState(null);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const toastTimerRef = useRef(null);
   const locationLoadInFlightRef = useRef(false);
   const queuedLocationLoadRef = useRef(null);
@@ -279,7 +288,7 @@ export default function Home() {
         : `${bookingConfirmation.slotNo} booked.`;
       setMessage(success);
       showToast("success", success);
-      downloadBookingReceipt({
+      await downloadBookingReceipt({
         bookingId: data.booking?.id,
         receiptNo: data.booking?.receiptNo,
         name: bookingConfirmation.allottee,
@@ -292,9 +301,11 @@ export default function Home() {
         parkingLevel: bookingConfirmation.parkingLevel,
         slotNo: bookingConfirmation.slotNo,
         stackLevel: bookingConfirmation.bookingLevel,
+        disclaimer: PARKING_DISCLAIMER,
         bookedAt: data.booking?.createdAt || new Date().toISOString()
       });
       setBookingConfirmation(null);
+      setShowDisclaimer(false);
       await loadLocations(locationId, mapId, bookingConfirmation.slotId);
     } catch (error) {
       setMessage(`Booking failed: ${error.message}`);
@@ -317,10 +328,7 @@ export default function Home() {
     return (
       <main className="app-shell level-shell">
         <header className="topbar">
-          <div>
-            <p className="eyebrow">Level Selection</p>
-            <h1>Select Parking Level</h1>
-          </div>
+          <BrandHeading eyebrow="Level Selection" title="Select Parking Level" />
           <nav className="top-actions">
             <button className="ghost inline-action" onClick={logout}>Logout</button>
             <a href="/admin/login">Admin</a>
@@ -368,10 +376,7 @@ export default function Home() {
   return (
     <main className="user-map-shell">
       <header className="map-topbar">
-        <div>
-          <p className="eyebrow">{activeLocation?.name || "Location"}</p>
-          <h1>{getParkingLevelLabel(selectedLevel)} Parking</h1>
-        </div>
+        <BrandHeading eyebrow={activeLocation?.name || "Location"} title={`${getParkingLevelLabel(selectedLevel)} Parking`} />
         <nav className="top-actions">
           <button className="ghost inline-action" onClick={() => { setSelectedLevel(""); setSelectedSlotId(""); }}>Levels</button>
           <button className="ghost inline-action" onClick={logout}>Logout</button>
@@ -451,10 +456,29 @@ export default function Home() {
           booking={bookingConfirmation}
           pending={pendingAction === "book"}
           onCancel={() => setBookingConfirmation(null)}
-          onConfirm={confirmBooking}
+          onConfirm={() => setShowDisclaimer(true)}
+        />
+      )}
+      {showDisclaimer && (
+        <DisclaimerModal
+          pending={pendingAction === "book"}
+          onCancel={() => setShowDisclaimer(false)}
+          onProceed={confirmBooking}
         />
       )}
     </main>
+  );
+}
+
+function BrandHeading({ eyebrow, title }) {
+  return (
+    <div className="brand-heading">
+      <img src="/brand/shreeji-logo.jpeg" alt="Shreeji Group" />
+      <div>
+        <p className="eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
+      </div>
+    </div>
   );
 }
 
@@ -580,7 +604,29 @@ function BookingConfirmModal({ booking, pending, onCancel, onConfirm }) {
         <div className="modal-actions">
           <button className="ghost" type="button" onClick={onCancel} disabled={pending}>Cancel</button>
           <button className="primary" type="button" onClick={onConfirm} disabled={pending}>
-            {pending ? "Booking..." : "Confirm Booking"}
+            Continue
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DisclaimerModal({ pending, onCancel, onProceed }) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={pending ? undefined : onCancel}>
+      <section className="disclaimer-modal" role="dialog" aria-modal="true" aria-labelledby="parking-disclaimer-title" onClick={(event) => event.stopPropagation()}>
+        <p className="section-label">Parking Selection Disclaimer</p>
+        <h2 id="parking-disclaimer-title">Please Review Before Proceeding</h2>
+        <p>By proceeding with the parking selection, you agree to the following:</p>
+        <ul>
+          {PARKING_DISCLAIMER.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+        <p>By clicking "Proceed", you confirm that you have read, understood, and accepted the above terms and conditions.</p>
+        <div className="modal-actions">
+          <button className="ghost" type="button" onClick={onCancel} disabled={pending}>Cancel</button>
+          <button className="primary" type="button" onClick={onProceed} disabled={pending}>
+            {pending ? "Booking..." : "Proceed"}
           </button>
         </div>
       </section>
@@ -624,22 +670,24 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
-function downloadBookingReceipt(receipt) {
+async function downloadBookingReceipt(receipt) {
   const receiptNo = receipt.receiptNo || receipt.bookingId || "PENDING";
+  const logo = await loadReceiptLogo();
   const commands = [
     "0.957 0.498 0.271 rg 0 742 595 100 re f",
     "0.125 0.098 0.078 rg 0 0 595 742 re f",
     "1 0.98 0.96 rg 34 82 527 700 re f",
     "0.957 0.498 0.271 rg 34 708 527 74 re f",
-    textAt(58, 754, "SHREEJI GROUP", 22, "F2", "1 1 1"),
-    textAt(58, 732, "OF COMPANIES", 11, "F2", "1 1 1"),
-    textAt(58, 716, "Building Bonds Of Trust", 10, "F1", "1 1 1"),
+    logo ? "q 100 0 0 54 58 716 cm /Logo Do Q" : "",
+    textAt(176, 754, "SHREEJI GROUP", 22, "F2", "1 1 1"),
+    textAt(176, 732, "OF COMPANIES", 11, "F2", "1 1 1"),
+    textAt(176, 716, "Building Bonds Of Trust", 10, "F1", "1 1 1"),
     textAt(364, 748, "PARKING RECEIPT", 16, "F2", "1 1 1"),
     textAt(364, 726, `Receipt No: ${receiptNo}`, 12, "F2", "1 1 1"),
     "0.86 0.78 0.71 RG 58 686 m 537 686 l S",
     textAt(58, 660, "Customer Details", 14, "F2", "0.125 0.098 0.078"),
     textAt(58, 484, "Parking Details", 14, "F2", "0.125 0.098 0.078"),
-    textAt(58, 176, "Status", 14, "F2", "0.125 0.098 0.078")
+    textAt(58, 236, "Status", 14, "F2", "0.125 0.098 0.078")
   ];
 
   let y = 632;
@@ -661,36 +709,67 @@ function downloadBookingReceipt(receipt) {
     ["Booked At", formatDateTime(receipt.bookedAt)]
   ], y);
 
-  addPdfRows(commands, [
+  y = addPdfRows(commands, [
     ["Booking Status", "Confirmed"],
     ["Generated By", "Shreeji Plaza Parking System"]
-  ], 148);
-  commands.push("0.86 0.78 0.71 RG 58 112 m 537 112 l S");
-  commands.push(textAt(58, 88, "This receipt is system generated for parking slot reservation.", 10, "F1", "0.459 0.424 0.392"));
+  ], 208);
+  commands.push(textAt(58, y - 8, "Parking Selection Disclaimer", 12, "F2", "0.125 0.098 0.078"));
+  y -= 30;
+  (receipt.disclaimer || PARKING_DISCLAIMER).forEach((item, index) => {
+    const wrapped = wrapPdfText(`${index + 1}. ${item}`, 118);
+    wrapped.forEach((line, lineIndex) => {
+      commands.push(textAt(58, y - lineIndex * 10, line, 6.8, "F1", "0.459 0.424 0.392"));
+    });
+    y -= Math.max(12, wrapped.length * 10 + 3);
+  });
+  commands.push("0.86 0.78 0.71 RG 58 28 m 537 28 l S");
+  commands.push(textAt(58, 14, "This receipt is system generated for parking slot reservation.", 8, "F1", "0.459 0.424 0.392"));
 
   const content = commands.join("\n");
+  const resources = logo
+    ? "<< /Font << /F1 4 0 R /F2 5 0 R >> /XObject << /Logo 7 0 R >> >>"
+    : "<< /Font << /F1 4 0 R /F2 5 0 R >> >>";
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources ${resources} /Contents 6 0 R >>`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
     `<< /Length ${content.length} >>\nstream\n${content}\nendstream`
   ];
+  if (logo) {
+    objects.push({
+      header: `<< /Type /XObject /Subtype /Image /Width ${logo.width} /Height ${logo.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${logo.bytes.byteLength} >>\nstream\n`,
+      bytes: logo.bytes,
+      footer: "\nendstream"
+    });
+  }
+
+  const encoder = new TextEncoder();
+  const chunks = [];
   let pdf = "%PDF-1.4\n";
   const offsets = [0];
   objects.forEach((object, index) => {
-    offsets.push(pdf.length);
-    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    offsets.push(byteLengthOfChunks(chunks) + encoder.encode(pdf).byteLength);
+    chunks.push(encoder.encode(pdf));
+    pdf = `${index + 1} 0 obj\n`;
+    if (typeof object === "string") {
+      pdf += `${object}\nendobj\n`;
+    } else {
+      chunks.push(encoder.encode(pdf + object.header));
+      chunks.push(object.bytes);
+      pdf = `${object.footer}\nendobj\n`;
+    }
   });
-  const xrefOffset = pdf.length;
+  const xrefOffset = byteLengthOfChunks(chunks) + encoder.encode(pdf).byteLength;
   pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
   offsets.slice(1).forEach((offset) => {
     pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
   });
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  chunks.push(encoder.encode(pdf));
 
-  const blob = new Blob([pdf], { type: "application/pdf" });
+  const blob = new Blob(chunks, { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -699,6 +778,36 @@ function downloadBookingReceipt(receipt) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function byteLengthOfChunks(chunks) {
+  return chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
+}
+
+async function loadReceiptLogo() {
+  try {
+    const [response, dimensions] = await Promise.all([
+      fetch("/brand/shreeji-logo.jpeg"),
+      getImageDimensions("/brand/shreeji-logo.jpeg")
+    ]);
+    if (!response.ok) return null;
+    return {
+      bytes: new Uint8Array(await response.arrayBuffer()),
+      width: dimensions.width,
+      height: dimensions.height
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getImageDimensions(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = reject;
+    image.src = src;
+  });
 }
 
 function escapePdfText(value) {

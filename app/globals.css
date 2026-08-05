@@ -49,10 +49,36 @@ button {
   border-bottom: 1px solid var(--line);
 }
 
+.brand-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-heading img {
+  width: 74px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  object-fit: contain;
+  background: #fff;
+}
+
+.brand-heading > div {
+  min-width: 0;
+}
+
+.brand-heading h1 {
+  overflow-wrap: anywhere;
+}
+
 .top-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .top-actions a {
@@ -114,6 +140,10 @@ h2 {
   display: block;
   color: var(--ink);
   font-size: 22px;
+}
+
+.map-stats {
+  justify-content: flex-end;
 }
 
 .admin-tabs {
@@ -456,6 +486,11 @@ input {
   gap: 14px;
   padding: 14px 16px;
   border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.map-toolbar > .message {
+  flex: 1 1 100%;
 }
 
 .legend {
@@ -877,6 +912,36 @@ label {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.26);
+}
+
+.disclaimer-modal {
+  width: min(620px, 100%);
+  max-height: min(760px, calc(100vh - 36px));
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.26);
+}
+
+.disclaimer-modal h2 {
+  margin-bottom: 10px;
+  font-size: 24px;
+}
+
+.disclaimer-modal p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.disclaimer-modal ul {
+  display: grid;
+  gap: 9px;
+  margin: 14px 0;
+  padding-left: 20px;
+  color: var(--ink);
+  line-height: 1.45;
 }
 
 .confirm-modal h2 {

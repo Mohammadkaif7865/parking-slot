@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Toast from "../components/Toast";
 import { getParkingLevelLabel, getParkingLevelShortLabel } from "../../lib/parking-labels";
-import { getNextSlotNumber, getSlotDisplayNumbers, getSlotLevelNames, getStackMapDisplayNumbers, getTierSlotNo } from "../../lib/slot-naming";
+import { getNextSlotNumber, getSlotCapacity, getSlotDisplayNumbers, getSlotLevelNames, getStackMapDisplayNumbers, getTierSlotNo } from "../../lib/slot-naming";
 
 const emptySlot = {
   id: "",
@@ -174,11 +174,15 @@ export default function AdminPage() {
 
   const stats = useMemo(() => {
     const slots = activeMap?.slots || [];
-    return {
-      total: slots.length,
-      available: slots.filter((slot) => slot.status === "available").length,
-      booked: slots.filter((slot) => slot.status === "booked").length
-    };
+    return slots.reduce((current, slot) => {
+      const capacity = getSlotCapacity(slot);
+      const booked = Math.min(capacity, slot.bookedLevels?.length || 0);
+      const unavailable = slot.status === "reserved" || slot.status === "maintenance";
+      current.total += capacity;
+      current.booked += booked;
+      current.available += unavailable ? 0 : Math.max(0, capacity - booked);
+      return current;
+    }, { total: 0, available: 0, booked: 0 });
   }, [activeMap]);
 
   function selectLocation(nextLocationId) {
@@ -591,19 +595,17 @@ export default function AdminPage() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">Admin Panel</p>
-          <h1>Map & Slot Overlay Manager</h1>
+        <div className="brand-heading">
+          <img src="/brand/shreeji-logo.jpeg" alt="Shreeji Group" />
+          <div>
+            <p className="eyebrow">Admin Panel</p>
+            <h1>Map & Slot Overlay Manager</h1>
+          </div>
         </div>
         <nav className="top-actions">
           <a href="/">User View</a>
           <a href="/admin/login">Admin Login</a>
         </nav>
-        <div className="stats">
-          <span><strong>{stats.total}</strong> Slots</span>
-          <span><strong>{stats.available}</strong> Available</span>
-          <span><strong>{stats.booked}</strong> Booked</span>
-        </div>
       </header>
 
       <nav className="admin-tabs" aria-label="Admin sections">
@@ -667,6 +669,11 @@ export default function AdminPage() {
             <div>
               <p className="eyebrow">{activeLocation?.name || "Location"}</p>
               <h2>{activeMap ? `${getParkingLevelLabel(activeMap.parkingLevel || 1)} - ${activeMap.name}` : "No map selected"}</h2>
+            </div>
+            <div className="stats map-stats">
+              <span><strong>{stats.total}</strong> Capacity</span>
+              <span><strong>{stats.available}</strong> Available</span>
+              <span><strong>{stats.booked}</strong> Booked</span>
             </div>
             <p className="message compact">Select a slot, edit coordinates, then save. Coordinates are percentages over the map.</p>
           </div>
