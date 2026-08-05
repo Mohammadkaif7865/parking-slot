@@ -124,7 +124,7 @@ export default function UserLoginPage() {
         </button>
         {!OTP_LOGIN_DISABLED && step === "otp" && <button className="ghost" type="button" disabled={pending} onClick={() => { setStep("mobile"); setOtp(""); setDemoOtp(""); }}>Change Mobile</button>}
         <p className="message">{message}</p>
-        <p className="message"><a href="/admin/login">Admin login</a></p>
+        {/* Admin login link is hidden; admin access remains available directly at /admin/login. */}
       </form>
       {alertMessage && (
         <div className="modal-backdrop" role="presentation" onClick={() => setAlertMessage("")}>
