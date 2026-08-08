@@ -36,16 +36,12 @@ export async function POST(request) {
   const sourceType = extension.replace(".", "");
   let filePath;
 
-  if (["png", "jpg", "jpeg", "svg"].includes(sourceType)) {
-    filePath = toDataUrl(sourceType, bytes);
-  } else {
-    const folder = path.join(process.cwd(), "public", "maps", locationId);
-    await mkdir(folder, { recursive: true });
-    const fileName = `${Date.now()}-${slugify(name)}${extension}`;
-    const fullPath = path.join(folder, fileName);
-    await writeFile(fullPath, bytes);
-    filePath = `/maps/${locationId}/${fileName}`;
-  }
+  const folder = path.join(process.cwd(), "public", "uploads", "maps", locationId);
+  await mkdir(folder, { recursive: true });
+  const fileName = `${Date.now()}-${slugify(name)}${extension}`;
+  const fullPath = path.join(folder, fileName);
+  await writeFile(fullPath, bytes);
+  filePath = `/uploads/maps/${locationId}/${fileName}`;
 
   const maps = await prisma.$transaction(
     parkingLevels.map((parkingLevel) => prisma.map.create({
@@ -77,17 +73,6 @@ function clampParkingLevel(value) {
   const parsed = Number(value || 1);
   if (!Number.isFinite(parsed)) return 1;
   return Math.max(1, Math.min(5, Math.trunc(parsed)));
-}
-
-function toDataUrl(sourceType, bytes) {
-  const mimeTypes = {
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    svg: "image/svg+xml"
-  };
-
-  return `data:${mimeTypes[sourceType]};base64,${bytes.toString("base64")}`;
 }
 
 function serializeMap(map) {

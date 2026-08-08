@@ -11,6 +11,9 @@ Thumbs.db
 *.dwg
 *.pdf
 *.png
+!public/uploads/
+!public/uploads/maps/
+!public/uploads/maps/**
 *.zip
 *.rar
 *.xlsx
