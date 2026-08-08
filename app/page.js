@@ -346,8 +346,7 @@ export default function Home() {
         <header className="topbar">
           <BrandHeading eyebrow="Level Selection" title="Select Parking Level" />
           <nav className="top-actions">
-            <button className="ghost inline-action" onClick={logout}>Logout</button>
-            <a href="/admin/login">Admin</a>
+            <button className="ghost inline-action user-logout" onClick={logout}>Logout</button>
           </nav>
         </header>
         <section className="level-selector">

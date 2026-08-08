@@ -95,6 +95,20 @@ button {
   text-decoration: none;
 }
 
+.user-logout {
+  min-width: 104px;
+  border-color: rgba(244, 127, 69, 0.35);
+  background: #fffaf6;
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: 0 8px 22px rgba(31, 25, 20, 0.06);
+}
+
+.user-logout:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 .eyebrow,
 .section-label {
   margin: 0 0 6px;
