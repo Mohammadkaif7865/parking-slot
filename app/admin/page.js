@@ -200,7 +200,10 @@ export default function AdminPage() {
   const userPageSize = 10;
   const userPageCount = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
   const pagedUsers = filteredUsers.slice((Math.min(userPage, userPageCount) - 1) * userPageSize, Math.min(userPage, userPageCount) * userPageSize);
-  const activeBookingRows = useMemo(() => getReportSlotRows(locations).filter((row) => row.bookingStatus === "Booked"), [locations]);
+  const activeBookingRows = useMemo(
+    () => getReportSlotRows(locations).filter((row) => row.bookingStatus === "Booked").sort(compareBookingDateDesc),
+    [locations]
+  );
 
   useEffect(() => {
     setUserPage(1);
@@ -1081,8 +1084,8 @@ export default function AdminPage() {
 }
 
 function buildReport(type, locations, users) {
-  const slotRows = getReportSlotRows(locations);
-  const activeBookings = slotRows.filter((row) => row.bookingStatus === "Booked");
+  const slotRows = getReportSlotRows(locations).sort(compareBookingDateDesc);
+  const activeBookings = slotRows.filter((row) => row.bookingStatus === "Booked").sort(compareBookingDateDesc);
   const bookingByMobile = new Map(activeBookings.map((row) => [row.mobile, row]));
 
   if (type === "user-booking-listing") {
@@ -1092,6 +1095,7 @@ function buildReport(type, locations, users) {
       rows: users.map((user) => {
         const booking = bookingByMobile.get(user.mobile);
         return {
+          _sort: booking?.bookedAtTimestamp || 0,
           Name: user.name || "",
           Mobile: user.mobile || "",
           Email: user.email || "",
@@ -1106,7 +1110,7 @@ function buildReport(type, locations, users) {
           "Receipt No": booking?.receiptNo || "",
           "Booked At": booking?.bookedAt || ""
         };
-      })
+      }).sort(compareReportSortDesc).map(stripReportSort)
     };
   }
 
@@ -1125,6 +1129,7 @@ function buildReport(type, locations, users) {
       rows: users.map((user) => {
         const booking = bookingByMobile.get(user.mobile);
         return {
+          _sort: booking?.bookedAtTimestamp || 0,
           Name: user.name || "",
           Mobile: user.mobile || "",
           Email: user.email || "",
@@ -1141,7 +1146,7 @@ function buildReport(type, locations, users) {
           "Stack Position": booking?.stackPosition || "",
           "Booked At": booking?.bookedAt || ""
         };
-      })
+      }).sort(compareReportSortDesc).map(stripReportSort)
     };
   }
 
@@ -1187,6 +1192,7 @@ function getReportSlotRows(locations) {
             mobile: booking?.mobile || "",
             email: booking?.email || "",
             address: booking?.address || "",
+            bookedAtTimestamp: booking?.createdAt ? new Date(booking.createdAt).getTime() : 0,
             bookedAt: booking?.createdAt ? formatDateTime(booking.createdAt) : ""
           };
         })
@@ -1216,6 +1222,19 @@ function slotReportRow(row) {
     "Address / Flat": row.address,
     "Booked At": row.bookedAt
   };
+}
+
+function compareBookingDateDesc(a, b) {
+  return (b.bookedAtTimestamp || 0) - (a.bookedAtTimestamp || 0);
+}
+
+function compareReportSortDesc(a, b) {
+  return (b._sort || 0) - (a._sort || 0);
+}
+
+function stripReportSort(row) {
+  const { _sort, ...reportRow } = row;
+  return reportRow;
 }
 
 function downloadExcelReport(filename, title, rows) {
